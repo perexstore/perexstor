@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perex Store - عرض خاص</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css?v=1.1">
+    <style id="dynamic-colors"></style>
+    <style>
+        .landing-page { padding-top: 100px; padding-bottom: 100px; }
+        .product-hero { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: start; }
+        .product-gallery { position: sticky; top: 120px; }
+        .main-img-wrap { border-radius: var(--border-radius); overflow: hidden; box-shadow: var(--shadow-premium); background: var(--card-bg); position: relative; }
+        .landing-checkout { background: var(--card-bg); padding: 40px; border-radius: var(--border-radius); border: 1px solid var(--glass-border); margin-top: 30px; }
+        .price-tag { display: flex; align-items: center; gap: 15px; margin: 20px 0; }
+        .price-tag .new { font-size: 2.8rem; font-weight: 800; color: var(--primary-color); }
+        .price-tag .old { font-size: 1.6rem; color: var(--text-muted); text-decoration: line-through; }
+        .features-list { margin: 30px 0; }
+        .features-list li { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; color: var(--text-color); font-size: 1.05rem; }
+        .features-list i { color: #22c55e; font-size: 1.2rem; }
+        
+        @media (max-width: 992px) {
+            .product-hero { grid-template-columns: 1fr; gap: 40px; }
+            .product-gallery { position: relative; top: 0; max-width: 600px; margin: 0 auto; }
+            .price-tag .new { font-size: 2.2rem; }
+            .landing-checkout { padding: 25px; }
+        }
+    </style>
+</head>
+<body class="landing-page">
+
+    <header class="header scrolled">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">
+                <img src="prerx logo.jpeg" alt="Logo">
+                <span>Perex Store</span>
+            </a>
+            <a href="index.html" class="btn btn-secondary">العودة للمتجر</a>
+        </div>
+    </header>
+
+    <div class="container" style="margin-top: 50px;">
+        <div id="landing-content" class="product-hero">
+            <!-- Content will be loaded by landing.js -->
+            <div style="text-align: center; grid-column: 1/-1; padding: 100px;">
+                <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 3rem; color: var(--primary-color);"></i>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
+<script src="landing.js?v=1.1"></script>
+</body>
+</html>

@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perex Store - إكسسوارات الهواتف المميزة</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Perex Store - متجرك الأول لكل ما تحتاجه في مصر. جودة، أناقة، وحماية فائقة.">
+    <meta name="keywords" content="إكسسوارات موبايل, جرابات آيفون, شواحن سريعة, سماعات بلوتوث, Perex Store">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- CSS link -->
+    <link rel="stylesheet" href="style.css?v=1.1">
+    
+    <!-- Dynamic CSS Colors (updated by JS) -->
+    <style id="dynamic-colors"></style>
+</head>
+<body>
+
+    <!-- Header / Navbar -->
+    <header class="header" id="header">
+        <div class="container nav-container">
+            <a href="#" class="logo">
+                <img src="prerx logo.jpeg" alt="Perex Store Logo">
+                <span>Perex Store</span>
+            </a>
+            
+            <nav class="navbar" id="navbar">
+                <ul class="nav-links">
+                    <li><a href="#home" class="active">الرئيسية</a></li>
+                    <li><a href="#features">المميزات</a></li>
+                    <li><a href="#products">المنتجات</a></li>
+                    <li><a href="#contact">تواصل معنا</a></li>
+                </ul>
+            </nav>
+
+            <div class="nav-icons">
+                <div class="cart-icon" id="cart-icon">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                    <span class="cart-count">0</span>
+                </div>
+                <div class="menu-toggle" id="menu-toggle">
+                    <i class="fa-solid fa-bars"></i>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Menu Overlay -->
+    <div class="menu-overlay" id="menu-overlay"></div>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="container hero-container">
+            <div class="hero-content">
+                <h1>ارتقِ بتجربة هاتفك مع <span class="highlight">Perex Store</span></h1>
+                <p>نقدم لك تشكيلة واسعة من أحدث وأجود إكسسوارات الهواتف الذكية التي تجمع بين الأناقة والحماية الاستثنائية.</p>
+                <div class="hero-buttons">
+                    <a href="#products" class="btn btn-primary">تسوق الآن <i class="fa-solid fa-arrow-left"></i></a>
+                    <a href="#features" class="btn btn-secondary">اكتشف مميزاتنا</a>
+                </div>
+            </div>
+            <div class="hero-image">
+                <img src="https://images.unsplash.com/photo-1601593346740-925612772716?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="إكسسوارات هواتف">
+                <div class="glass-card">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span>حماية فائقة</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dynamic Sliders -->
+    <section id="dynamic-sliders" class="main-slider-section" style="display: none;">
+        <div class="container">
+            <div class="slider-wrapper" id="slider-wrapper">
+                <div id="slider-container" class="slider-container">
+                    <!-- Sliders injected by JS -->
+                </div>
+                
+                <div id="slider-overlay-text" class="slider-overlay-text" style="display: none;">
+                    <div class="container" style="padding: 0 40px;">
+                        <h2 id="slider-title"></h2>
+                        <p id="slider-desc"></p>
+                    </div>
+                </div>
+                
+                <button class="slider-nav-btn prev-btn" onclick="moveMainSlider(-1)"><i class="fa-solid fa-chevron-right"></i></button>
+                <button class="slider-nav-btn next-btn" onclick="moveMainSlider(1)"><i class="fa-solid fa-chevron-left"></i></button>
+                
+                <div class="slider-dots" id="slider-dots">
+                    <!-- Dots injected by JS -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Products Section -->
+    <section class="products" id="products">
+        <div class="container">
+            <div class="section-title">
+                <h2>أحدث <span>المنتجات</span></h2>
+                <p>تصفح كل منتجاتنا المميزه والجديده</p>
+            </div>
+            
+            <div class="product-filters">
+                <!-- Injected by JS -->
+                <button class="filter-btn active" data-filter="all">الكل</button>
+            </div>
+
+            <div class="products-grid" id="products-container">
+                <!-- Products injected by JS -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <div class="section-title">
+                <h2>لماذا تختار <span>Perex Store</span>؟</h2>
+                <p>نحرص على تقديم أفضل خدمة لعملائنا الكرام</p>
+            </div>
+            <div class="features-grid" id="features-container">
+                <div class="feature-card">
+                    <div class="icon-box"><i class="fa-solid fa-truck-fast"></i></div>
+                    <h3>توصيل سريع</h3>
+                    <p>نضمن لك توصيل طلباتك بأسرع وقت ممكن لباب منزلك.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon-box"><i class="fa-solid fa-medal"></i></div>
+                    <h3>جودة أصلية</h3>
+                    <p>جميع منتجاتنا أصلية ومضمونة 100% لتضمن لك أفضل أداء.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon-box"><i class="fa-solid fa-headset"></i></div>
+                    <h3>دعم فني 24/7</h3>
+                    <p>فريق خدمة العملاء متواجد دائماً للرد على استفساراتكم.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon-box"><i class="fa-solid fa-credit-card"></i></div>
+                    <h3>دفع آمن</h3>
+                    <p>نوفر طرق دفع متعددة وآمنة لتسهيل عملية الشراء.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Reviews Section -->
+    <section class="reviews" id="reviews">
+        <div class="container">
+            <div class="reviews-content glass-effect">
+                <h2>رأيك يهمنا!</h2>
+                <p>شاركنا تجربتك مع منتجات Perex Store.</p>
+                
+                <form class="review-form" id="review-form" onsubmit="submitReview(event)">
+                    <input type="text" id="reviewer-name" placeholder="الاسم (اختياري)" class="review-input">
+                    <textarea id="reviewer-comment" rows="3" placeholder="اكتب تعليقك أو تقييمك هنا..." required class="review-input"></textarea>
+                    <button type="submit" class="btn btn-primary">نشر التعليق</button>
+                </form>
+
+                <div class="reviews-list" id="reviews-list">
+                    <!-- Reviews injected by JS -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer" id="contact">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col about">
+                    <a href="#" class="logo footer-logo">
+                        <img src="prerx logo.jpeg" alt="Perex Store Logo">
+                        <span>Perex Store</span>
+                    </a>
+                    <p>متجرك الأول لكل ما تحتاجه. جودة، أناقة، وحماية.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fa-brands fa-facebook-f"></i></a>
+                        <a href="#"><i class="fa-brands fa-instagram"></i></a>
+                        <a href="#"><i class="fa-brands fa-twitter"></i></a>
+                        <a href="#"><i class="fa-brands fa-tiktok"></i></a>
+                    </div>
+                </div>
+                
+                <div class="footer-col links">
+                    <h3>روابط سريعة</h3>
+                    <ul>
+                        <li><a href="#home">الرئيسية</a></li>
+                        <li><a href="#products">المنتجات</a></li>
+                        <li><a href="#features">عن المتجر</a></li>
+                        <li><a href="admin.html">لوحة التحكم</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-col contact-info">
+                    <h3>تواصل معنا</h3>
+                    <ul>
+                        <li><i class="fa-solid fa-location-dot"></i> القاهرة، مصر</li>
+                        <li><i class="fa-solid fa-phone"></i> +20 122 271 1455</li>
+                        <li><i class="fa-solid fa-envelope"></i> info@perexstore.com</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2026 Perex Store. جميع الحقوق محفوظة.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Cart Sidebar -->
+    <div class="cart-overlay" id="cart-overlay"></div>
+    <div class="cart-sidebar" id="cart-sidebar">
+        <div class="cart-header">
+            <h3>سلة المشتريات</h3>
+            <button class="close-cart" id="close-cart"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="cart-items" id="cart-items">
+            <p class="empty-cart-msg">السلة فارغة حالياً</p>
+        </div>
+        <div class="cart-footer">
+            <div class="form-group coupon-group" style="margin-bottom: 15px;">
+                <label style="font-size: 0.85rem; margin-bottom: 5px; display: block; color: var(--primary-color);">كود الخصم:</label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="coupon-input" class="review-input" placeholder="ادخل الكود هنا..." style="padding: 8px;">
+                    <button class="btn btn-primary" onclick="applyCoupon()" style="padding: 8px 15px; border-radius: 10px; font-size: 0.8rem;">تطبيق</button>
+                </div>
+                <div id="coupon-msg" style="font-size: 0.75rem; margin-top: 5px;"></div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label style="font-size: 0.9rem; margin-bottom: 5px; display: block; color: var(--primary-color);">اختر محافظتك:</label>
+                <select id="cart-gov" class="review-input" onchange="calculateCartTotal()" style="padding: 8px;">
+                    <option value="" disabled selected>اختر المحافظة...</option>
+                </select>
+            </div>
+            <div class="cart-total" style="font-size: 0.95rem; margin-bottom: 5px;">
+                <span>المنتجات:</span>
+                <span id="cart-subtotal-price">0 ج.م</span>
+            </div>
+            <div class="cart-total" id="cart-discount-row" style="font-size: 0.95rem; margin-bottom: 5px; color: #ef4444; display: none;">
+                <span>الخصم:</span>
+                <span id="cart-discount-price">0 ج.م</span>
+            </div>
+            <div class="cart-total" style="font-size: 0.95rem; margin-bottom: 10px;">
+                <span>الشحن:</span>
+                <span id="cart-shipping-price">0 ج.م</span>
+            </div>
+            <div class="cart-total">
+                <span>الإجمالي المطلوب:</span>
+                <span id="cart-total-price">0 ج.م</span>
+            </div>
+            <div class="cod-badge" style="font-size: 0.85rem; padding: 8px; margin-bottom: 15px; background: rgba(37, 211, 102, 0.2);">
+                <i class="fa-solid fa-money-bill-wave"></i> متوفر الدفع عند الاستلام
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary" onclick="closeCart()" style="flex: 1; padding: 12px;">إكمال التسوق</button>
+                <button class="btn btn-primary checkout-btn" onclick="checkout()" style="flex: 2; padding: 12px;">إتمام الطلب</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div class="checkout-overlay" id="checkout-overlay"></div>
+    <div class="checkout-modal" id="checkout-modal">
+        <div class="checkout-header">
+            <h3>إتمام الطلب</h3>
+            <button class="close-checkout" id="close-checkout" onclick="closeCheckout()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form class="checkout-form" id="checkout-form" onsubmit="submitOrder(event)">
+            <div class="form-group">
+                <input type="text" id="customer-name" placeholder="الاسم بالكامل" required class="review-input">
+            </div>
+            <div class="form-group" style="margin-top: 10px;">
+                <input type="tel" id="customer-phone" placeholder="رقم الهاتف (11 رقم)" required class="review-input" pattern="[0-9٠-٩]{11}">
+            </div>
+            <div class="form-grid-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                <div class="form-group">
+                    <select id="customer-gov" required class="review-input" onchange="calculateShipping()">
+                        <option value="" disabled selected>المحافظة...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <input type="text" id="customer-district" placeholder="المنطقة / الحي (اختياري)" class="review-input">
+                </div>
+            </div>
+            <div class="form-group" style="margin-top: 10px;">
+                <textarea id="customer-address" rows="2" placeholder="العنوان بالتفصيل (الشارع، رقم العمارة، إلخ)" required class="review-input"></textarea>
+            </div>
+            <div class="form-group" style="margin-top: 10px;">
+                <textarea id="customer-notes" rows="1" placeholder="ملاحظات إضافية (اختياري) - لون، مواصفة..." class="review-input"></textarea>
+            </div>
+            
+            <div class="checkout-summary" style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; margin-top: 20px;">
+                <div class="summary-row" style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>قيمة المنتجات:</span> <span id="summary-subtotal">0 ج.م</span></div>
+                <div class="summary-row" id="summary-discount-row" style="display:none; justify-content:space-between; margin-bottom:5px; color: #ef4444;"><span>خصم الكوبون:</span> <span id="summary-discount">0 ج.م</span></div>
+                <div class="summary-row" style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>مصاريف الشحن:</span> <span id="summary-shipping">0 ج.م</span></div>
+                <div class="summary-row total" style="display:flex; justify-content:space-between; margin-top:10px; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px; font-weight:800; font-size:1.1rem; color:var(--primary-color);"><span>الإجمالي المطلوب:</span> <span id="summary-total">0 ج.م</span></div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 15px;">تأكيد الطلب <i class="fa-solid fa-check"></i></button>
+        </form>
+    </div>
+
+    <!-- JS script -->
+    <!-- Floating Buttons Container -->
+    <div id="floating-buttons-container" class="floating-container">
+        <!-- Injected by script.js -->
+    </div>
+
+    <style>
+        .floating-container {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 999;
+        }
+        .float-btn {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-decoration: none;
+        }
+        .float-btn:hover {
+            transform: scale(1.1) translateY(-5px);
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
+<script src="script.js?v=1.1"></script>
+</body>
+</html>
