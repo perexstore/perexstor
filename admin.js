@@ -6,7 +6,7 @@ let settings = {};
 let landingPages = [];
 let shipping = [];
 let customers = {};
-    banner: { title: "ارتقِ بتجربة هاتفك", desc: "أحدث إكسسوارات الهواتف", cta: "تسوق الآن", img: "" },
+
 // Settings are now fetched from Supabase
 
 const THEMES = {
@@ -76,13 +76,52 @@ async function initData() {
         orders = await SupabaseService.getOrders();
         settings = await SupabaseService.getSettings();
         shipping = await SupabaseService.getShippingRates();
-        // Fallback for default settings
+        
+        // Migration Check: If products are empty in Supabase but exist in localStorage
+        const localProds = JSON.parse(localStorage.getItem('perex_products')) || [];
+        if (products.length === 0 && localProds.length > 0) {
+            console.log('Migrating data to Supabase...');
+            showToast('جاري نقل البيانات إلى Supabase...');
+            
+            // Migrate Products
+            for (let p of localProds) {
+                await SupabaseService.saveProduct(p);
+            }
+            // Migrate Categories
+            const localCats = JSON.parse(localStorage.getItem('perex_categories')) || [];
+            for (let c of localCats) {
+                await SupabaseService.saveCategory(c);
+            }
+            // Migrate Settings
+            const localSettings = JSON.parse(localStorage.getItem('perex_settings'));
+            if (localSettings) {
+                await SupabaseService.saveSettings(localSettings);
+                settings = localSettings;
+            }
+            // Migrate Shipping
+            const localShip = JSON.parse(localStorage.getItem('perex_shipping'));
+            if (localShip) {
+                await SupabaseService.saveShippingRates(localShip);
+                shipping = localShip;
+            }
+            
+            // Refresh Supabase data
+            products = await SupabaseService.getProducts();
+            categories = await SupabaseService.getCategories();
+            showToast('تم نقل البيانات بنجاح');
+        }
+
+    } catch (e) {
+        console.error('Data Init Error:', e);
+        showToast('فشل تحميل البيانات من Supabase. تأكد من إعداد الجداول.', 'error');
+    } finally {
+        // Ensure robust fallbacks
+        if (!settings) settings = {};
         if (!settings.auth) settings.auth = { user: "admin", pass: "perex2026" };
         if (!settings.store) settings.store = { name: "Perex Store", logo: "prerx logo.jpeg", whatsapp: "201222711455", pixel: "", waMsg: "🛍️ طلب جديد من Perex Store" };
         if (!settings.theme) settings.theme = "dark";
-    } catch (e) {
-        console.error('Data Init Error:', e);
-        showToast('فشل تحميل البيانات من Supabase', 'error');
+        if (!settings.banner) settings.banner = { title: "ارتقِ بتجربة هاتفك", desc: "أحدث إكسسوارات الهواتف", cta: "تسوق الآن", img: "" };
+        if (!settings.colors) settings.colors = { primary: "#0ea5e9", secondary: "#38bdf8", bg: "#0f172a" };
     }
 }
 
@@ -116,20 +155,31 @@ function checkLogin() {
 }
 
 function doLogin() {
-    const userInput = document.getElementById('login-user').value.trim();
-    const passInput = document.getElementById('login-pass').value.trim();
-    
-    // Use stored credentials or default fallback
-    const correctUser = settings.auth.user || "admin";
-    const correctPass = settings.auth.pass || "perex2026";
+    try {
+        const userInput = document.getElementById('login-user').value.trim();
+        const passInput = document.getElementById('login-pass').value.trim();
+        
+        // Safety check
+        if (!settings || !settings.auth) {
+            console.warn('Settings not loaded yet, using defaults');
+            if (!settings) settings = {};
+            settings.auth = { user: "admin", pass: "perex2026" };
+        }
 
-    if (userInput === correctUser && passInput === correctPass) {
-        sessionStorage.setItem('perex_logged_in', 'true');
-        location.reload();
-    } else {
-        const errorEl = document.getElementById('login-error');
-        errorEl.style.display = 'block';
-        errorEl.innerText = "اسم المستخدم أو كلمة المرور غير صحيحة";
+        const correctUser = settings.auth.user || "admin";
+        const correctPass = settings.auth.pass || "perex2026";
+
+        if (userInput === correctUser && passInput === correctPass) {
+            sessionStorage.setItem('perex_logged_in', 'true');
+            location.reload();
+        } else {
+            const errorEl = document.getElementById('login-error');
+            errorEl.style.display = 'block';
+            errorEl.innerText = "اسم المستخدم أو كلمة المرور غير صحيحة";
+        }
+    } catch (err) {
+        console.error('Login Error:', err);
+        alert('حدث خطأ أثناء تسجيل الدخول: ' + err.message);
     }
 }
 
@@ -375,12 +425,13 @@ async function saveCategory() {
     if (!name || !slug) return showToast('برجاء ملء جميع الحقول', 'error');
 
     const catData = { 
-        id: id || slug, // Use slug as ID if new, or existing ID
         name, 
         slug, 
         order: categories.length + 1, 
         is_visible: true 
     };
+    if (id) catData.id = id;
+    else catData.id = slug; // Fallback to slug if no ID
 
     try {
         await SupabaseService.saveCategory(catData);
@@ -389,7 +440,7 @@ async function saveCategory() {
         renderCategories();
         showToast('تم حفظ القسم بنجاح');
     } catch (e) {
-        showToast('فشل حفظ القسم في Supabase', 'error');
+        showToast('فشل حفظ القسم: ' + e.message, 'error');
     }
 }
 
@@ -559,7 +610,7 @@ async function saveProduct() {
         updateStats();
         showToast('تم حفظ المنتج بنجاح');
     } catch (e) {
-        showToast('فشل حفظ المنتج في Supabase', 'error');
+        showToast('فشل حفظ المنتج: ' + e.message, 'error');
     }
 }
 
@@ -690,7 +741,7 @@ async function saveCoupon() {
         is_active: document.getElementById('coup-active').checked
     };
 
-    if (id) data.id = parseInt(id);
+    if (id && id.trim() !== '') data.id = parseInt(id);
 
     try {
         await SupabaseService.saveCoupon(data);
@@ -699,7 +750,7 @@ async function saveCoupon() {
         renderCoupons();
         showToast('تم حفظ الكوبون بنجاح');
     } catch (e) {
-        showToast('فشل حفظ الكوبون في Supabase', 'error');
+        showToast('فشل حفظ الكوبون: ' + e.message, 'error');
     }
 }
 
@@ -1547,7 +1598,15 @@ function getDragAfterElement(container, y) {
 
 function setupEventListeners() {
     // Add enter key for login
-    document.getElementById('login-pass').addEventListener('keypress', (e) => { if (e.key === 'Enter') doLogin(); });
+    const loginUser = document.getElementById('login-user');
+    const loginPass = document.getElementById('login-pass');
+    
+    if (loginUser) {
+        loginUser.addEventListener('keypress', (e) => { if (e.key === 'Enter') doLogin(); });
+    }
+    if (loginPass) {
+        loginPass.addEventListener('keypress', (e) => { if (e.key === 'Enter') doLogin(); });
+    }
 }
 
 function renderFloatingBtns() {

@@ -1,14 +1,22 @@
 const SUPABASE_URL = 'https://ecbxkudufxpvipxfcdtj.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_DTqljapdUl9XTLI-5u13_Q_1Qg6BDx2';
 
-const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const _supabaseClient = (window.supabase || window.Supabase);
+if (!_supabaseClient) {
+    console.error('Supabase library not loaded! Check your script tags in HTML.');
+}
+const _supabase = _supabaseClient ? _supabaseClient.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 // Helper function to handle Supabase responses
 async function handleSupabase(promise) {
-    const { data, error } = await promise;
+    if (!_supabase) {
+        throw new Error('Supabase client not initialized. Check your configuration.');
+    }
+    const { data, error, statusText } = await promise;
     if (error) {
         console.error('Supabase Error:', error);
-        throw error;
+        const msg = error.message || statusText || 'Unknown Supabase Error';
+        throw new Error(msg);
     }
     return data;
 }
@@ -75,6 +83,12 @@ const SupabaseService = {
     async saveSetting(key, value) {
         return await handleSupabase(_supabase.from('settings').upsert({ key, value, updated_at: new Date() }));
     },
+    async saveSettings(settingsObj) {
+        const promises = Object.entries(settingsObj).map(([key, value]) => {
+            return this.saveSetting(key, value);
+        });
+        return await Promise.all(promises);
+    },
 
     // Shipping Rates
     async getShippingRates() {
@@ -82,6 +96,9 @@ const SupabaseService = {
     },
     async saveShippingRate(rate) {
         return await handleSupabase(_supabase.from('shipping_rates').upsert(rate));
+    },
+    async saveShippingRates(rates) {
+        return await handleSupabase(_supabase.from('shipping_rates').upsert(rates));
     },
 
     // Reviews
