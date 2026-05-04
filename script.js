@@ -306,7 +306,7 @@ function renderCategories() {
     filterContainer.appendChild(allBtn);
 
     categories.sort((a,b) => a.order - b.order).forEach(c => {
-        if (c.isVisible === false) return;
+        if (c.is_visible === false) return;
         const btn = document.createElement('button');
         btn.className = 'filter-btn';
         btn.dataset.filter = c.id;
@@ -330,7 +330,7 @@ function renderProducts(catId, reset = true) {
         currentCategory = catId;
     }
 
-    const filtered = products.filter(p => (currentCategory === 'all' || p.category === currentCategory) && p.isVisible !== false);
+    const filtered = products.filter(p => (currentCategory === 'all' || p.category === currentCategory) && p.is_visible !== false);
     
     const start = (currentPage - 1) * productsPerPage;
     const end = start + productsPerPage;
@@ -338,7 +338,7 @@ function renderProducts(catId, reset = true) {
 
     container.innerHTML = ''; // Re-render all up to current end to simplify
     paginated.forEach(p => {
-        const discount = p.oldPrice ? Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100) : 0;
+        const discount = p.old_price ? Math.round(((p.old_price - p.price) / p.old_price) * 100) : 0;
         const card = document.createElement('div');
         card.className = 'product-card';
         card.style.cursor = 'pointer';
@@ -365,7 +365,7 @@ function renderProducts(catId, reset = true) {
                 <div class="product-price-row" style="margin-bottom:10px;">
                     <div style="display:flex;flex-direction:column;">
                         <span class="product-price">${p.price} ج.م</span>
-                        ${p.oldPrice ? `<del class="product-old-price" style="font-size:0.8rem;color:#999">${p.oldPrice} ج.م</del>` : ''}
+                        ${p.old_price ? `<del class="product-old-price" style="font-size:0.8rem;color:#999">${p.old_price} ج.م</del>` : ''}
                     </div>
                 </div>
                 <button class="btn btn-primary" onclick="event.stopPropagation(); addToCart(${p.id})" style="width:100%; padding:10px; font-weight:bold; font-size:1rem;">أضف للسلة <i class="fa-solid fa-cart-plus"></i></button>
@@ -471,20 +471,20 @@ function updateTotals() {
     let discount = 0;
 
     if (appliedCoupon) {
-        if (appliedCoupon.applyType === 'all' || !appliedCoupon.applyType) {
+        if (appliedCoupon.apply_type === 'all' || !appliedCoupon.apply_type) {
             discount = appliedCoupon.type === 'fixed' ? appliedCoupon.discount : Math.round(subtotal * (appliedCoupon.discount / 100));
-        } else if (appliedCoupon.applyType === 'categories') {
+        } else if (appliedCoupon.apply_type === 'categories') {
             const eligibleTotal = cartItems.reduce((sum, item) => {
                 const p = products.find(prod => prod.id === item.id);
-                if (p && appliedCoupon.targetIds.includes(p.category)) {
+                if (p && appliedCoupon.target_ids.includes(p.category)) {
                     return sum + (item.price * item.qty);
                 }
                 return sum;
             }, 0);
             discount = appliedCoupon.type === 'fixed' ? appliedCoupon.discount : Math.round(eligibleTotal * (appliedCoupon.discount / 100));
-        } else if (appliedCoupon.applyType === 'products') {
+        } else if (appliedCoupon.apply_type === 'products') {
             const eligibleTotal = cartItems.reduce((sum, item) => {
-                if (appliedCoupon.targetIds.includes(item.id.toString())) {
+                if (appliedCoupon.target_ids.includes(item.id.toString())) {
                     return sum + (item.price * item.qty);
                 }
                 return sum;
@@ -492,8 +492,8 @@ function updateTotals() {
             discount = appliedCoupon.type === 'fixed' ? appliedCoupon.discount : Math.round(eligibleTotal * (appliedCoupon.discount / 100));
         }
         if (discount > subtotal) discount = subtotal;
-        if (appliedCoupon.type === 'percentage' && appliedCoupon.maxDiscount && appliedCoupon.maxDiscount > 0) {
-            if (discount > appliedCoupon.maxDiscount) discount = appliedCoupon.maxDiscount;
+        if (appliedCoupon.type === 'percentage' && appliedCoupon.max_discount && appliedCoupon.max_discount > 0) {
+            if (discount > appliedCoupon.max_discount) discount = appliedCoupon.max_discount;
         }
         
         document.getElementById('cart-discount-row').style.display = 'flex';
@@ -507,25 +507,25 @@ function updateTotals() {
     // Check if cart has eligible items for the coupon
     let hasEligibleItems = false;
     if (appliedCoupon) {
-        if (appliedCoupon.applyType === 'all' || !appliedCoupon.applyType) {
+        if (appliedCoupon.apply_type === 'all' || !appliedCoupon.apply_type) {
             hasEligibleItems = cartItems.length > 0;
-        } else if (appliedCoupon.applyType === 'categories') {
+        } else if (appliedCoupon.apply_type === 'categories') {
             hasEligibleItems = cartItems.some(item => {
                 const p = products.find(prod => prod.id === item.id);
-                return p && appliedCoupon.targetIds.includes(p.category);
+                return p && appliedCoupon.target_ids.includes(p.category);
             });
-        } else if (appliedCoupon.applyType === 'products') {
-            hasEligibleItems = cartItems.some(item => appliedCoupon.targetIds.includes(item.id.toString()));
+        } else if (appliedCoupon.apply_type === 'products') {
+            hasEligibleItems = cartItems.some(item => appliedCoupon.target_ids.includes(item.id.toString()));
         }
     }
 
-    const shipPrice = (appliedCoupon && appliedCoupon.freeShipping && hasEligibleItems) ? 0 : originalShipPrice;
+    const shipPrice = (appliedCoupon && appliedCoupon.free_shipping && hasEligibleItems) ? 0 : originalShipPrice;
     const total = subtotal - discount + shipPrice;
 
     document.getElementById('cart-subtotal-price').innerText = `${subtotal} ج.م`;
     
     const shippingEl = document.getElementById('cart-shipping-price');
-    if (appliedCoupon && appliedCoupon.freeShipping && hasEligibleItems) {
+    if (appliedCoupon && appliedCoupon.free_shipping && hasEligibleItems) {
         shippingEl.innerHTML = `<del style="color:#999; font-size:0.8rem;">${originalShipPrice} ج.م</del> <span style="color:#22c55e;">مجاني</span>`;
     } else {
         shippingEl.innerText = `${shipPrice} ج.م`;
@@ -565,19 +565,19 @@ function applyCoupon() {
         return;
     }
 
-    if (!coupon.isActive) {
+    if (!coupon.is_active) {
         msgEl.innerText = 'هذا الكود معطل حالياً';
         msgEl.style.color = '#ef4444';
         return;
     }
 
-    if (coupon.expiryDate && new Date(coupon.expiryDate) < new Date()) {
+    if (coupon.expiry_date && new Date(coupon.expiry_date) < new Date()) {
         msgEl.innerText = 'هذا الكود منتهي الصلاحية';
         msgEl.style.color = '#ef4444';
         return;
     }
 
-    if (coupon.currentUses >= coupon.maxUses) {
+    if (coupon.current_uses >= coupon.max_uses) {
         msgEl.innerText = 'تم الوصول للحد الأقصى لاستخدام الكود';
         msgEl.style.color = '#ef4444';
         return;
@@ -585,15 +585,15 @@ function applyCoupon() {
 
     // Check eligibility
     let hasEligibleItems = false;
-    if (coupon.applyType === 'all' || !coupon.applyType) {
+    if (coupon.apply_type === 'all' || !coupon.apply_type) {
         hasEligibleItems = cartItems.length > 0;
-    } else if (coupon.applyType === 'categories') {
+    } else if (coupon.apply_type === 'categories') {
         hasEligibleItems = cartItems.some(item => {
             const p = products.find(prod => prod.id === item.id);
-            return p && coupon.targetIds.includes(p.category);
+            return p && coupon.target_ids.includes(p.category);
         });
-    } else if (coupon.applyType === 'products') {
-        hasEligibleItems = cartItems.some(item => coupon.targetIds.includes(item.id.toString()));
+    } else if (coupon.apply_type === 'products') {
+        hasEligibleItems = cartItems.some(item => coupon.target_ids.includes(item.id.toString()));
     }
 
     if (!hasEligibleItems) {
@@ -603,19 +603,19 @@ function applyCoupon() {
     }
 
     let subtotal = cartItems.reduce((s, i) => s + (i.price * i.qty), 0);
-    if (coupon.minOrder && subtotal < coupon.minOrder) {
-        msgEl.innerText = `الحد الأدنى لاستخدام الكوبون هو ${coupon.minOrder} ج.م`;
+    if (coupon.min_order && subtotal < coupon.min_order) {
+        msgEl.innerText = `الحد الأدنى لاستخدام الكوبون هو ${coupon.min_order} ج.م`;
         msgEl.style.color = '#ef4444';
         return;
     }
 
     appliedCoupon = coupon;
     const discountVal = coupon.type === 'fixed' ? `${coupon.discount} ج.م` : `${coupon.discount}%`;
-    if (coupon.discount > 0 && coupon.freeShipping) {
+    if (coupon.discount > 0 && coupon.free_shipping) {
         msgEl.innerText = `تم تطبيق خصم ${discountVal} + شحن مجاني!`;
     } else if (coupon.discount > 0) {
         msgEl.innerText = `تم تطبيق خصم بقيمة ${discountVal}`;
-    } else if (coupon.freeShipping) {
+    } else if (coupon.free_shipping) {
         msgEl.innerText = `تم تطبيق عرض الشحن المجاني!`;
     }
     
@@ -663,17 +663,19 @@ async function submitOrder(e) {
     const total = subtotal - discount + shipping;
 
     const orderData = {
+        // Flattened properties for DB columns
         customer_name: document.getElementById('customer-name').value,
         customer_phone: document.getElementById('customer-phone').value.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)),
         governorate: govSelect.options[govSelect.selectedIndex].dataset.name,
         district: document.getElementById('customer-district').value,
         address: document.getElementById('customer-address').value,
         notes: document.getElementById('customer-notes').value,
+        
         items: cartItems.map(i => ({ id: i.id, name: i.name, price: i.price, qty: i.qty })),
         subtotal: subtotal,
         shipping: shipping,
         discount: discount,
-        coupon_code: appliedCoupon ? appliedCoupon.code : null,
+        coupon: appliedCoupon ? appliedCoupon.code : null,
         total: total,
         status: 'new'
     };
@@ -681,12 +683,12 @@ async function submitOrder(e) {
     try {
         const savedOrder = await SupabaseService.saveOrder(orderData);
         
-        // Update coupon uses in Supabase
+        // Update coupon uses in Supabase (non-blocking)
         if (appliedCoupon) {
-            await SupabaseService.saveCoupon({ 
+            SupabaseService.saveCoupon({ 
                 id: appliedCoupon.id, 
                 current_uses: (appliedCoupon.current_uses || 0) + 1 
-            });
+            }).catch(err => console.warn('Coupon usage update failed:', err));
         }
 
         // WhatsApp Message
@@ -705,18 +707,18 @@ async function submitOrder(e) {
         trackPixel('Purchase', { value: total, currency: 'EGP', content_ids: orderData.items.map(i => i.id) });
     } catch (e) {
         console.error('Order Submit Error:', e);
-        alert('حدث خطأ أثناء إرسال الطلب. يرجى المحاولة مرة أخرى.');
+        alert('حدث خطأ أثناء إرسال الطلب: ' + e.message);
         if (btn) btn.disabled = false;
     }
 }
 
 function sendWhatsApp(o) {
     let msg = `*${settings.store.waMsg}*\n\n`;
-    msg += `👤 *العميل:* ${o.customer.name}\n`;
-    msg += `📞 *الهاتف:* ${o.customer.phone}\n`;
-    msg += `📍 *العنوان:* ${o.customer.governorate} - ${o.customer.district}\n`;
-    msg += `🏠 *التفاصيل:* ${o.customer.address}\n`;
-    if (o.customer.notes) msg += `📝 *ملاحظات:* ${o.customer.notes}\n`;
+    msg += `👤 *العميل:* ${o.customer_name}\n`;
+    msg += `📞 *الهاتف:* ${o.customer_phone}\n`;
+    msg += `📍 *العنوان:* ${o.governorate} - ${o.district || ''}\n`;
+    msg += `🏠 *التفاصيل:* ${o.address}\n`;
+    if (o.notes) msg += `📝 *ملاحظات:* ${o.notes}\n`;
     msg += `\n📦 *المنتجات:*\n`;
     o.items.forEach((i, idx) => msg += `${idx+1}. ${i.name} (عدد: ${i.qty}) (${i.price * i.qty} ج.م)\n`);
     msg += `\n💰 *الحساب:*\n`;

@@ -2,6 +2,7 @@ let products = [];
 let categories = [];
 let coupons = [];
 let orders = [];
+let reviews = [];
 let settings = {};
 let landingPages = [];
 let shipping = [];
@@ -76,6 +77,7 @@ async function initData() {
         orders = await SupabaseService.getOrders();
         settings = await SupabaseService.getSettings();
         shipping = await SupabaseService.getShippingRates();
+        reviews = await SupabaseService.getReviews();
         
         // Migration Check: If products are empty in Supabase but exist in localStorage
         const localProds = JSON.parse(localStorage.getItem('perex_products')) || [];
@@ -111,6 +113,25 @@ async function initData() {
             showToast('تم نقل البيانات بنجاح');
         }
 
+        // If shipping is still empty, add defaults
+        if (shipping.length === 0) {
+            const defaults = [
+                { name: "القاهرة", price: 50 }, { name: "الجيزة", price: 50 }, { name: "الإسكندرية", price: 60 },
+                { name: "القليوبية", price: 60 }, { name: "المنوفية", price: 70 }, { name: "الغربية", price: 70 },
+                { name: "الدقهلية", price: 70 }, { name: "الشرقية", price: 70 }, { name: "البحيرة", price: 70 },
+                { name: "دمياط", price: 80 }, { name: "كفر الشيخ", price: 80 }, { name: "الفيوم", price: 80 },
+                { name: "بني سويف", price: 80 }, { name: "المنيا", price: 90 }, { name: "أسيوط", price: 90 },
+                { name: "سوهاج", price: 100 }, { name: "قنا", price: 100 }, { name: "الأقصر", price: 100 },
+                { name: "أسوان", price: 120 }, { name: "مطروح", price: 120 }, { name: "الوادي الجديد", price: 150 },
+                { name: "شمال سيناء", price: 150 }, { name: "جنوب سيناء", price: 150 }, { name: "البحر الأحمر", price: 120 },
+                { name: "السويس", price: 80 }, { name: "الإسماعيلية", price: 80 }, { name: "بورسعيد", price: 80 }
+            ];
+            for(let d of defaults) {
+                await SupabaseService.saveShippingRate(d);
+            }
+            shipping = await SupabaseService.getShippingRates();
+        }
+
     } catch (e) {
         console.error('Data Init Error:', e);
         showToast('فشل تحميل البيانات من Supabase. تأكد من إعداد الجداول.', 'error');
@@ -126,11 +147,19 @@ async function initData() {
 }
 
 function showLoading() {
-    // Implement if there's a loading spinner
+    const loader = document.getElementById('loading-screen');
+    if (loader) loader.style.display = 'flex';
 }
 
 function hideLoading() {
-    // Implement
+    const loader = document.getElementById('loading-screen');
+    if (loader) {
+        loader.style.transition = 'opacity 0.5s ease';
+        loader.style.opacity = '0';
+        setTimeout(() => {
+            loader.style.display = 'none';
+        }, 500);
+    }
 }
 
 async function saveAll() {
@@ -229,6 +258,16 @@ function switchTab(tabId, el) {
     document.getElementById('top-bar-title').innerText = el.innerText.trim();
     if (window.innerWidth < 900) toggleSidebar();
     renderAll();
+    if (tabId === 'orders') {
+        if (orders.length > 0) {
+            const maxId = Math.max(...orders.map(o => parseInt(o.id) || 0));
+            localStorage.setItem('perex_last_seen_order_id', maxId);
+        }
+        const badges = [document.getElementById('orders-badge'), document.getElementById('notif-count')];
+        badges.forEach(b => {
+            if (b) b.classList.add('hidden');
+        });
+    }
 }
 
 function toggleSidebar() {
@@ -308,10 +347,10 @@ function renderProductsAdmin() {
                 </div>
             </td>
             <td>${p.price} ج.م</td>
-            <td><del>${p.oldPrice || '-'}</del></td>
+            <td><del>${p.old_price || '-'}</del></td>
             <td>${p.stock}</td>
             <td>
-                <label class="toggle"><input type="checkbox" ${p.isVisible !== false ? 'checked' : ''} onchange="toggleProductVisibility(${p.id})"><span class="toggle-slider"></span></label>
+                <label class="toggle"><input type="checkbox" ${p.is_visible !== false ? 'checked' : ''} onchange="toggleProductVisibility(${p.id})"><span class="toggle-slider"></span></label>
             </td>
             <td>
                 <button class="btn btn-icon btn-ghost btn-sm" onclick="editProduct(${p.id})"><i class="fa-solid fa-pen"></i></button>
@@ -325,17 +364,18 @@ function renderProductsAdmin() {
 // Coupons
 function renderCoupons() {
     const tbody = document.getElementById('coupons-tbody');
+    if (!tbody) return;
     tbody.innerHTML = '';
     coupons.forEach(c => {
-        const status = c.isActive ? '<span class="badge badge-new">مفعل</span>' : '<span class="badge badge-cancelled">معطل</span>';
+        const status = c.is_active ? '<span class="badge badge-new">مفعل</span>' : '<span class="badge badge-cancelled">معطل</span>';
         const discountVal = c.type === 'fixed' ? `${c.discount} ج.م` : `${c.discount}%`;
-        const discountText = `${discountVal} ${c.freeShipping ? '+ شحن مجاني' : ''}`;
+        const discountText = `${discountVal} ${c.free_shipping ? '+ شحن مجاني' : ''}`;
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><strong>${c.code}</strong></td>
             <td>${discountText}</td>
-            <td>${c.expiryDate || 'بدون تاريخ'}</td>
-            <td>${c.currentUses} / ${c.maxUses}</td>
+            <td>${c.expiry_date || 'بدون تاريخ'}</td>
+            <td>${c.current_uses} / ${c.max_uses}</td>
             <td>${status}</td>
             <td>
                 <button class="btn btn-icon btn-ghost btn-sm" onclick="editCoupon('${c.id}')"><i class="fa-solid fa-pen"></i></button>
@@ -355,21 +395,31 @@ function renderOrdersAdmin() {
     tbody.innerHTML = '';
 
     const filtered = orders.filter(o => {
-        const matchesSearch = o.customer.name.toLowerCase().includes(search) || o.customer.phone.includes(search);
+        const cName = (o.customer_name || (o.customer && o.customer.name) || '').toLowerCase();
+        const cPhone = o.customer_phone || (o.customer && o.customer.phone) || '';
+        const matchesSearch = cName.includes(search) || cPhone.includes(search);
         const matchesStatus = status === '' || o.status === status;
-        const matchesDate = date === '' || o.date === date;
+        const oDate = (o.created_at || '').split('T')[0];
+        const matchesDate = date === '' || oDate === date;
         return matchesSearch && matchesStatus && matchesDate;
-    }).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+    }).sort((a,b) => new Date(b.created_at || b.timestamp || 0) - new Date(a.created_at || a.timestamp || 0));
 
     filtered.forEach(o => {
         const tr = document.createElement('tr');
         const statusBadge = getStatusBadge(o.status);
+        
+        const customerName = o.customer_name || (o.customer && o.customer.name) || 'عميل';
+        const customerPhone = o.customer_phone || (o.customer && o.customer.phone) || '-';
+        const customerGov = o.governorate || (o.customer && o.customer.governorate) || '-';
+
+        const displayDate = (o.created_at || '').split('T')[0] || o.date || '-';
+
         tr.innerHTML = `
             <td>#${o.id}</td>
-            <td>${o.date}</td>
-            <td>${o.customer.name}</td>
-            <td>${o.customer.phone}</td>
-            <td>${o.customer.governorate}</td>
+            <td>${displayDate}</td>
+            <td>${customerName}</td>
+            <td>${customerPhone}</td>
+            <td>${customerGov}</td>
             <td>${o.total} ج.م</td>
             <td>${statusBadge}</td>
             <td>
@@ -381,11 +431,21 @@ function renderOrdersAdmin() {
     });
     
     // Update badge count
-    const newOrders = orders.filter(o => o.status === 'new').length;
-    document.getElementById('orders-badge').innerText = newOrders;
-    document.getElementById('orders-badge').classList.toggle('hidden', newOrders === 0);
-    document.getElementById('notif-count').innerText = newOrders;
-    document.getElementById('notif-count').classList.toggle('hidden', newOrders === 0);
+    const lastSeenId = parseInt(localStorage.getItem('perex_last_seen_order_id')) || 0;
+    const newOrders = orders.filter(o => o.status === 'new' && (parseInt(o.id) || 0) > lastSeenId).length;
+    const isOrdersTab = document.getElementById('tab-orders').classList.contains('active');
+    
+    const badgeEl = document.getElementById('orders-badge');
+    const notifEl = document.getElementById('notif-count');
+    
+    if (badgeEl) {
+        badgeEl.innerText = newOrders;
+        badgeEl.classList.toggle('hidden', newOrders === 0 || isOrdersTab);
+    }
+    if (notifEl) {
+        notifEl.innerText = newOrders;
+        notifEl.classList.toggle('hidden', newOrders === 0 || isOrdersTab);
+    }
 }
 
 function getStatusBadge(status) {
@@ -508,7 +568,7 @@ function handleProductImages(input) {
     files.forEach(file => {
         const reader = new FileReader();
         reader.onload = async (e) => {
-            const compressed = await compressImage(e.target.result, 600, 600, 0.6);
+            const compressed = await compressImage(e.target.result, 800, 800, 0.8);
             const finalUrl = await uploadToImgBB(compressed);
             selectedImages.push(finalUrl);
             renderImgPreviews();
@@ -615,19 +675,19 @@ async function saveProduct() {
 }
 
 function editProduct(id) {
-    const p = products.find(prod => prod.id === id);
+    const p = products.find(prod => prod.id == id);
     if (!p) return;
     document.getElementById('product-modal-title').innerText = 'تعديل المنتج';
     document.getElementById('prod-edit-id').value = p.id;
     document.getElementById('prod-name').value = p.name;
     document.getElementById('prod-category').value = p.category;
     document.getElementById('prod-price').value = p.price;
-    document.getElementById('prod-old-price').value = p.oldPrice || '';
+    document.getElementById('prod-old-price').value = p.old_price || '';
     document.getElementById('prod-stock').value = p.stock;
     document.getElementById('prod-badge').value = p.badge;
     document.getElementById('prod-desc').value = p.description || '';
     document.getElementById('prod-rating').value = p.rating || 5;
-    document.getElementById('prod-pixel').value = p.pixelId || '';
+    document.getElementById('prod-pixel').value = p.pixel_id || '';
     selectedImages = [...p.images];
     renderImgPreviews();
     document.getElementById('product-modal').classList.add('active');
@@ -647,14 +707,15 @@ async function deleteProduct(id) {
 }
 
 async function toggleProductVisibility(id) {
-    const p = products.find(prod => prod.id === id);
-    const newStatus = !p.isVisible;
+    const p = products.find(prod => prod.id == id);
+    if (!p) return;
+    const newStatus = !p.is_visible;
     try {
         await SupabaseService.saveProduct({ id, is_visible: newStatus });
-        p.isVisible = newStatus;
+        p.is_visible = newStatus;
         showToast('تم تحديث حالة الظهور');
     } catch (e) {
-        showToast('فشل تحديث الحالة', 'error');
+        showToast('فشل تحديث الحالة: ' + e.message, 'error');
     }
 }
 
@@ -755,29 +816,29 @@ async function saveCoupon() {
 }
 
 function editCoupon(id) {
-    const c = coupons.find(coup => coup.id === id);
+    const c = coupons.find(coup => coup.id == id);
+    if (!c) return;
     document.getElementById('coupon-modal-title').innerText = 'تعديل الكوبون';
     document.getElementById('coup-edit-id').value = c.id;
     document.getElementById('coup-code').value = c.code;
     document.getElementById('coup-type').value = c.type || 'percentage';
     document.getElementById('coup-discount').value = c.discount;
-    document.getElementById('coup-min-order').value = c.minOrder || '';
-    document.getElementById('coup-max-discount').value = c.maxDiscount || '';
-    document.getElementById('coup-free-shipping').checked = c.freeShipping || false;
-    document.getElementById('coup-expiry').value = c.expiryDate;
-    document.getElementById('coup-max-uses').value = c.maxUses;
+    document.getElementById('coup-min-order').value = c.min_order || '';
+    document.getElementById('coup-max-discount').value = c.max_discount || '';
+    document.getElementById('coup-free-shipping').checked = c.free_shipping || false;
+    document.getElementById('coup-expiry').value = c.expiry_date || '';
+    document.getElementById('coup-max-uses').value = c.max_uses;
     
-    document.getElementById('coup-apply-type').value = c.applyType || 'all';
+    document.getElementById('coup-apply-type').value = c.apply_type || 'all';
     toggleCoupTargeting();
-    if (c.targetIds) {
-        c.targetIds.forEach(tid => {
+    if (c.target_ids) {
+        c.target_ids.forEach(tid => {
             const cb = document.querySelector(`input[name="coup-targets"][value="${tid}"]`);
             if (cb) cb.checked = true;
         });
     }
 
-    document.getElementById('coup-customers').value = c.allowedCustomers.join('\n');
-    document.getElementById('coup-active').checked = c.isActive;
+    document.getElementById('coup-active').checked = c.is_active;
     document.getElementById('coupon-modal').classList.add('active');
 }
 
@@ -800,7 +861,24 @@ function viewOrder(id) {
     const body = document.getElementById('order-modal-body');
     currentOrderToPrint = o;
 
+    const customerName = o.customer_name || (o.customer && o.customer.name) || '';
+    const customerPhone = o.customer_phone || (o.customer && o.customer.phone) || '';
+    const gov = o.governorate || (o.customer && o.customer.governorate) || '';
+    const district = o.district || (o.customer && o.customer.district) || '';
+    const address = o.address || (o.customer && o.customer.address) || '';
+    const notes = o.notes || (o.customer && o.customer.notes) || '';
+
     body.innerHTML = `
+        <div class="form-grid">
+            <div class="form-group"><label>الاسم</label><input type="text" id="order-edit-name" class="form-control" value="${customerName}"></div>
+            <div class="form-group"><label>الهاتف</label><input type="text" id="order-edit-phone" class="form-control" value="${customerPhone}"></div>
+            <div class="form-group"><label>المحافظة</label><input type="text" id="order-edit-gov" class="form-control" value="${gov}"></div>
+            <div class="form-group"><label>المنطقة</label><input type="text" id="order-edit-district" class="form-control" value="${district}"></div>
+            <div class="form-group form-full"><label>العنوان بالتفصيل</label><textarea id="order-edit-address" class="form-control" rows="2">${address}</textarea></div>
+            <div class="form-group form-full"><label>ملاحظات العميل</label><textarea id="order-edit-notes" class="form-control" rows="2">${notes}</textarea></div>
+        </div>
+        <button class="btn btn-sm btn-success" style="margin-bottom:20px;" onclick="saveOrderDetails('${o.id}')">حفظ تعديلات البيانات</button>
+
         <div class="form-grid">
             <div class="form-group">
                 <label>تغيير الحالة</label>
@@ -813,20 +891,9 @@ function viewOrder(id) {
             </div>
             <div class="form-group">
                 <label>التاريخ</label>
-                <div class="form-control">${o.date} ${o.time || ''}</div>
+                <div class="form-control">${(o.created_at || '').replace('T', ' ').split('.')[0]}</div>
             </div>
         </div>
-        <hr style="margin:20px 0;opacity:0.1">
-        <h3>بيانات العميل (قابلة للتعديل)</h3>
-        <div class="form-grid">
-            <div class="form-group"><label>الاسم</label><input type="text" class="form-control" id="order-edit-name" value="${o.customer.name}"></div>
-            <div class="form-group"><label>الهاتف</label><input type="text" class="form-control" id="order-edit-phone" value="${o.customer.phone}"></div>
-            <div class="form-group"><label>المحافظة</label><input type="text" class="form-control" id="order-edit-gov" value="${o.customer.governorate}"></div>
-            <div class="form-group"><label>المنطقة</label><input type="text" class="form-control" id="order-edit-district" value="${o.customer.district || ''}"></div>
-            <div class="form-group form-full"><label>العنوان بالتفصيل</label><input type="text" class="form-control" id="order-edit-address" value="${o.customer.address}"></div>
-            <div class="form-group form-full"><label>ملاحظات العميل</label><input type="text" class="form-control" id="order-edit-notes" value="${o.customer.notes || ''}"></div>
-        </div>
-        <button class="btn btn-sm btn-success" style="margin-top:10px;" onclick="saveOrderDetails('${o.id}')">حفظ تعديلات العميل</button>
         <hr style="margin:20px 0;opacity:0.1">
         <h3>المنتجات</h3>
         <table style="margin-top:10px;">
@@ -943,15 +1010,15 @@ function printInvoice(o) {
                 </div>
                 <div style="text-align:left; padding-top:10px;">
                     <h3 style="margin:0;font-size:20px;">فاتورة رقم: #${o.id}</h3>
-                    <p style="margin:5px 0;">التاريخ: ${o.date}</p>
+                    <p style="margin:5px 0;">التاريخ: ${(o.created_at || '').split('T')[0]}</p>
                 </div>
             </div>
             <div style="background:#f4f4f5; padding:15px; border-radius:8px; margin-bottom:20px;">
                 <h3 style="margin:0 0 10px 0; color:#333;">بيانات العميل</h3>
                 <div style="display:flex; justify-content:space-between;">
-                    <div><strong>الاسم:</strong> ${o.customer.name}</div>
-                    <div><strong>الهاتف:</strong> ${o.customer.phone}</div>
-                    <div><strong>العنوان:</strong> ${o.customer.governorate} - ${o.customer.district || ''} <br> <small>${o.customer.address}</small></div>
+                    <div><strong>الاسم:</strong> ${o.customer_name || (o.customer && o.customer.name)}</div>
+                    <div><strong>الهاتف:</strong> ${o.customer_phone || (o.customer && o.customer.phone)}</div>
+                    <div><strong>العنوان:</strong> ${o.governorate || (o.customer && o.customer.governorate)} - ${o.district || (o.customer && o.customer.district) || ''} <br> <small>${o.address || (o.customer && o.customer.address)}</small></div>
                 </div>
             </div>
             <table>
@@ -972,12 +1039,15 @@ function printInvoice(o) {
 
 function exportTodayOrders() {
     const today = new Date().toISOString().split('T')[0];
-    const todayOrders = orders.filter(o => o.date === today);
+    const todayOrders = orders.filter(o => (o.created_at || '').startsWith(today));
     if (todayOrders.length === 0) return showToast('لا توجد طلبات اليوم لتصديرها', 'error');
     
     let csv = "رقم الطلب,العميل,الهاتف,المحافظة,الإجمالي,الحالة\n";
     todayOrders.forEach(o => {
-        csv += `${o.id},${o.customer.name},${o.customer.phone},${o.customer.governorate},${o.total},${o.status}\n`;
+        const cName = o.customer_name || (o.customer && o.customer.name) || '';
+        const cPhone = o.customer_phone || (o.customer && o.customer.phone) || '';
+        const cGov = o.governorate || (o.customer && o.customer.governorate) || '';
+        csv += `${o.id},${cName},${cPhone},${cGov},${o.total},${o.status}\n`;
     });
     
     const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
@@ -1001,13 +1071,16 @@ function searchCustomers() {
     // Find customers from orders
     const found = {};
     orders.forEach(o => {
-        const c = o.customer;
-        if (c.name.toLowerCase().includes(query) || c.phone.includes(query) || (c.district && c.district.toLowerCase().includes(query))) {
-            if (!found[c.phone]) {
-                found[c.phone] = { name: c.name, phone: c.phone, district: c.district, orders: [], totalSpent: 0 };
+        const cName = o.customer_name || (o.customer && o.customer.name) || '';
+        const cPhone = o.customer_phone || (o.customer && o.customer.phone) || '';
+        const cDistrict = o.district || (o.customer && o.customer.district) || '';
+        
+        if (cName.toLowerCase().includes(query) || cPhone.includes(query) || cDistrict.toLowerCase().includes(query)) {
+            if (!found[cPhone]) {
+                found[cPhone] = { name: cName, phone: cPhone, district: cDistrict, orders: [], totalSpent: 0 };
             }
-            found[c.phone].orders.push(o);
-            found[c.phone].totalSpent += o.total;
+            found[cPhone].orders.push(o);
+            found[cPhone].totalSpent += o.total;
         }
     });
 
@@ -1072,24 +1145,24 @@ function copyUrl(url) {
 function renderReviewsAdmin() {
     const tbody = document.getElementById('reviews-tbody');
     if (!tbody) return;
-    const allReviews = JSON.parse(localStorage.getItem('perex_reviews')) || [];
     tbody.innerHTML = '';
 
-    allReviews.slice().reverse().forEach((r, idx) => {
+    reviews.forEach((r) => {
         const tr = document.createElement('tr');
-        const user = r.user || r.name || 'عميل مجهول';
-        const text = r.text || r.comment || '';
+        const user = r.user_name || r.user || r.name || 'عميل مجهول';
+        const text = r.comment || r.text || '';
         const rating = r.rating || 5;
+        const displayDate = (r.created_at || '').split('T')[0] || r.date || '-';
 
         tr.innerHTML = `
-            <td><strong>${user}</strong><br><small>${r.date}</small></td>
+            <td><strong>${user}</strong><br><small>${displayDate}</small></td>
             <td>${'⭐'.repeat(rating)}</td>
             <td style="max-width:200px; white-space:normal;">${text}</td>
             <td>
-                <textarea class="form-control" placeholder="اكتب رداً..." onchange="replyToReview(${allReviews.length - 1 - idx}, this.value)">${r.reply || ''}</textarea>
+                <textarea class="form-control" placeholder="اكتب رداً..." onchange="replyToReview('${r.id}', this.value)">${r.reply || ''}</textarea>
             </td>
             <td>
-                <button class="btn btn-icon btn-danger btn-sm" onclick="deleteReview(${allReviews.length - 1 - idx})"><i class="fa-solid fa-trash"></i></button>
+                <button class="btn btn-icon btn-danger btn-sm" onclick="deleteReview('${r.id}')"><i class="fa-solid fa-trash"></i></button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -1098,7 +1171,9 @@ function renderReviewsAdmin() {
 
 async function replyToReview(reviewId, text) {
     try {
-        await SupabaseService.saveReview({ id: reviewId, reply: text });
+        await SupabaseService.updateReview(reviewId, { reply: text });
+        reviews = await SupabaseService.getReviews();
+        renderReviewsAdmin();
         showToast('تم حفظ الرد');
     } catch (e) {
         showToast('فشل حفظ الرد في Supabase', 'error');
@@ -1109,6 +1184,7 @@ async function deleteReview(id) {
     if (confirm('هل أنت متأكد من حذف هذا التعليق؟')) {
         try {
             await SupabaseService.deleteReview(id);
+            reviews = await SupabaseService.getReviews();
             renderReviewsAdmin();
             showToast('تم حذف التعليق');
         } catch (e) {
@@ -1335,7 +1411,7 @@ function addSliderBanner(input) {
     const file = input.files[0];
     const reader = new FileReader();
     reader.onload = async (e) => {
-        const compressed = await compressImage(e.target.result, 1200, 400, 0.7);
+        const compressed = await compressImage(e.target.result, 1600, 600, 0.85);
         const finalUrl = await uploadToImgBB(compressed);
         if (!settings.sliders) settings.sliders = [];
         settings.sliders.push({ img: finalUrl });
@@ -1356,7 +1432,7 @@ function handleBannerImg(input) {
     const file = input.files[0];
     const reader = new FileReader();
     reader.onload = async (e) => {
-        const compressed = await compressImage(e.target.result, 1200, 600, 0.7);
+        const compressed = await compressImage(e.target.result, 1600, 800, 0.85);
         const finalUrl = await uploadToImgBB(compressed);
         settings.banner.img = finalUrl;
         document.getElementById('banner-img-preview').innerHTML = `
@@ -1390,7 +1466,7 @@ function handleStoreLogo(input) {
     const file = input.files[0];
     const reader = new FileReader();
     reader.onload = async (e) => {
-        const compressed = await compressImage(e.target.result, 200, 200, 0.8);
+        const compressed = await compressImage(e.target.result, 400, 400, 0.9);
         const finalUrl = await uploadToImgBB(compressed);
         settings.store.logo = finalUrl;
         document.getElementById('store-logo-preview').innerHTML = `<img src="${finalUrl}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid var(--pr);">`;
@@ -1495,8 +1571,14 @@ function updateStats() {
     const today = new Date().toISOString().split('T')[0];
     const month = today.substring(0, 7);
     
-    const todayOrders = orders.filter(o => o.date === today && o.status !== 'cancelled');
-    const monthOrders = orders.filter(o => o.date.startsWith(month) && o.status !== 'cancelled');
+    const todayOrders = orders.filter(o => {
+        const oDate = (o.created_at || '').split('T')[0] || o.date;
+        return oDate === today && o.status !== 'cancelled';
+    });
+    const monthOrders = orders.filter(o => {
+        const oDate = (o.created_at || '').split('T')[0] || o.date;
+        return oDate && oDate.startsWith(month) && o.status !== 'cancelled';
+    });
     
     document.getElementById('stat-orders-today').innerText = todayOrders.length;
     document.getElementById('stat-revenue-today').innerText = todayOrders.reduce((sum, o) => sum + o.total, 0);
@@ -1772,13 +1854,22 @@ function getFilteredOrders() {
     let title = "تقرير الطلبات";
 
     if (day) {
-        filtered = orders.filter(o => o.date === day);
+        filtered = orders.filter(o => {
+            const oDate = (o.created_at || '').split('T')[0] || o.date;
+            return oDate === day;
+        });
         title = `تقرير طلبات يوم ${day}`;
     } else if (month) {
-        filtered = orders.filter(o => o.date.startsWith(month));
+        filtered = orders.filter(o => {
+            const oDate = (o.created_at || '').split('T')[0] || o.date;
+            return oDate && oDate.startsWith(month);
+        });
         title = `تقرير طلبات شهر ${month}`;
     } else if (year) {
-        filtered = orders.filter(o => o.date.startsWith(year));
+        filtered = orders.filter(o => {
+            const oDate = (o.created_at || '').split('T')[0] || o.date;
+            return oDate && oDate.startsWith(year);
+        });
         title = `تقرير طلبات سنة ${year}`;
     } else {
         showToast('برجاء تحديد اليوم أو الشهر أو السنة للتصدير', 'error');
@@ -1811,19 +1902,26 @@ function exportOrdersPDF() {
     const { filtered, title } = data;
 
     const win = window.open('', '_blank');
-    const tableRows = filtered.map((o, idx) => `
-        <tr>
-            <td>${idx + 1}</td>
-            <td>#${o.id}</td>
-            <td>${o.date}</td>
-            <td>${o.customer.name}</td>
-            <td>${o.customer.phone}</td>
-            <td>${o.customer.governorate}</td>
-            <td>${o.items.map(i => `${i.name} (${i.qty})`).join(' - ')}</td>
-            <td>${o.total} ج.م</td>
-            <td>${o.status}</td>
-        </tr>
-    `).join('');
+    const tableRows = filtered.map((o, idx) => {
+        const customerName = o.customer_name || (o.customer && o.customer.name) || 'عميل';
+        const customerPhone = o.customer_phone || (o.customer && o.customer.phone) || '-';
+        const customerGov = o.governorate || (o.customer && o.customer.governorate) || '-';
+        const displayDate = (o.created_at || '').split('T')[0] || o.date || '-';
+        
+        return `
+            <tr>
+                <td>${idx + 1}</td>
+                <td>#${o.id}</td>
+                <td>${displayDate}</td>
+                <td>${customerName}</td>
+                <td>${customerPhone}</td>
+                <td>${customerGov}</td>
+                <td>${(o.items || []).map(i => `${i.name} (${i.qty})`).join(' - ')}</td>
+                <td>${o.total} ج.م</td>
+                <td>${o.status}</td>
+            </tr>
+        `;
+    }).join('');
 
     const totalRevenue = filtered.reduce((sum, o) => sum + o.total, 0);
 
@@ -1884,19 +1982,26 @@ function exportOrdersExcel() {
                     <th>الإجمالي (ج.م)</th>
                     <th>الحالة</th>
                 </tr>
-                ${filtered.map((o, idx) => `
+                ${filtered.map((o, idx) => {
+                    const customerName = o.customer_name || (o.customer && o.customer.name) || 'عميل';
+                    const customerPhone = o.customer_phone || (o.customer && o.customer.phone) || '-';
+                    const customerGov = o.governorate || (o.customer && o.customer.governorate) || '-';
+                    const displayDate = (o.created_at || '').split('T')[0] || o.date || '-';
+                    
+                    return `
                     <tr>
                         <td>${idx + 1}</td>
                         <td>${o.id}</td>
-                        <td>${o.date}</td>
-                        <td>${o.customer.name}</td>
-                        <td>'${o.customer.phone}</td> <!-- Quote to keep phone as string -->
-                        <td>${o.customer.governorate}</td>
-                        <td>${o.items.map(i => `${i.name} (${i.qty})`).join(' - ')}</td>
+                        <td>${displayDate}</td>
+                        <td>${customerName}</td>
+                        <td>'${customerPhone}</td>
+                        <td>${customerGov}</td>
+                        <td>${(o.items || []).map(i => `${i.name} (${i.qty})`).join(' - ')}</td>
                         <td>${o.total}</td>
                         <td>${o.status}</td>
                     </tr>
-                `).join('')}
+                `;
+                }).join('')}
                 <tr><td colspan="7" style="text-align:left; font-weight:bold;">المجموع النهائي:</td><td colspan="2" style="font-weight:bold;">${totalRevenue} ج.م</td></tr>
             </table>
         </body>

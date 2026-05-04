@@ -153,8 +153,8 @@ function loadProduct() {
     }
 
     // Pixel ViewContent
-    if (settings.store.pixel || p.pixelId) {
-        initPixel(p.pixelId || settings.store.pixel);
+    if (settings.store.pixel || p.pixel_id) {
+        initPixel(p.pixel_id || settings.store.pixel);
         fbq('track', 'ViewContent', { content_ids: [p.id], content_name: p.name, value: p.price, currency: 'EGP' });
     }
 
@@ -177,7 +177,7 @@ function loadProduct() {
             </div>
             <div class="price-tag">
                 <span class="new">${p.price} ج.م</span>
-                ${p.oldPrice ? `<span class="old">${p.oldPrice} ج.م</span>` : ''}
+                ${p.old_price ? `<span class="old">${p.old_price} ج.م</span>` : ''}
             </div>
             <p style="color:#94a3b8;font-size:1.1rem;line-height:1.8">${p.description || 'لا يوجد وصف متاح حالياً.'}</p>
             
@@ -232,7 +232,7 @@ function applyLandingCoupon(basePrice) {
     const msg = document.getElementById('l-coupon-msg');
     if (!code) return;
 
-    const coupon = coupons.find(c => c.code === code && c.isActive);
+    const coupon = coupons.find(c => c.code === code && c.is_active);
     if (!coupon) {
         msg.innerText = 'كود غير صحيح';
         msg.style.color = '#ef4444';
@@ -276,11 +276,12 @@ async function submitLandingOrder(e, productId) {
         governorate: govSelect.options[govSelect.selectedIndex].dataset.name,
         district: document.getElementById('l-district').value,
         address: document.getElementById('l-address').value,
+        
         items: [{ id: p.id, name: p.name, price: p.price, qty: 1 }],
         subtotal: p.price,
         shipping: ship,
         discount: discount,
-        coupon_code: appliedCoupon ? appliedCoupon.code : null,
+        coupon: appliedCoupon ? appliedCoupon.code : null,
         total: total,
         status: 'new'
     };
@@ -288,23 +289,29 @@ async function submitLandingOrder(e, productId) {
     try {
         const savedOrder = await SupabaseService.saveOrder(orderData);
         
-        // Update coupon uses in Supabase
+        // Update coupon uses in Supabase (non-blocking)
         if (appliedCoupon) {
-            await SupabaseService.saveCoupon({ 
+            SupabaseService.saveCoupon({ 
                 id: appliedCoupon.id, 
                 current_uses: (appliedCoupon.current_uses || 0) + 1 
-            });
+            }).catch(err => console.warn('Coupon usage update failed:', err));
         }
 
         // WhatsApp
         let msg = `*${settings.store.waMsg}*\n\n`;
-        msg += `👤 *العميل:* ${orderData.customer_name}\n📞 *الهاتف:* ${orderData.customer_phone}\n📍 *العنوان:* ${orderData.governorate} - ${orderData.district}\n🏠 *التفاصيل:* ${orderData.address}\n\n📦 *المنتج:* ${p.name}\n💰 *الإجمالي:* ${total} ج.م`;
+        msg += `👤 *العميل:* ${orderData.customer_name}\n`;
+        msg += `📞 *الهاتف:* ${orderData.customer_phone}\n`;
+        msg += `📍 *العنوان:* ${orderData.governorate} - ${orderData.district}\n`;
+        msg += `🏠 *التفاصيل:* ${orderData.address}\n\n`;
+        msg += `📦 *المنتج:* ${p.name}\n`;
+        msg += `💰 *الإجمالي:* ${total} ج.م`;
+        
         window.open(`https://wa.me/${settings.store.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
 
         alert('تم تأكيد طلبك بنجاح!');
     } catch (e) {
-        console.error('Landing Order Submit Error:', e);
-        alert('حدث خطأ أثناء إرسال الطلب.');
+        console.error('Landing Order Error:', e);
+        alert('حدث خطأ أثناء إرسال الطلب: ' + e.message);
         if (btn) btn.disabled = false;
     }
 }
