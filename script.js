@@ -54,7 +54,7 @@ async function initData() {
         // Fallback for default settings
         if (!settings.theme) settings.theme = "dark";
         if (!settings.colors) settings.colors = { primary: "#0ea5e9", secondary: "#38bdf8", bg: "#0f172a" };
-        if (!settings.banner) settings.banner = { title: "ارتقِ بتجربة هاتفك", desc: "أحدث إكسسوارات الهواتف", cta: "تسوق الآن", img: "" };
+        if (!settings.banner) settings.banner = { title: "Perex Store - كل ما تحتاجه", desc: "جودة، أناقة، وتنوع لا محدود في مكان واحد", cta: "تسوق الآن", img: "" };
         if (!settings.store) settings.store = { whatsapp: "201222711455", pixel: "", waMsg: "🛍️ طلب جديد من Perex Store" };
         
     } catch (e) {
@@ -711,7 +711,9 @@ async function submitOrder(e) {
         updateCartUI();
         closeCheckout();
         document.getElementById('checkout-form').reset();
-        alert('تم استلام طلبك بنجاح! سيتم التواصل معك عبر الواتساب.');
+        // Show Success Modal
+        document.getElementById('success-overlay').classList.add('active');
+        document.getElementById('success-modal').classList.add('active');
         
         // Pixel
         trackPixel('Purchase', { value: total, currency: 'EGP', content_ids: orderData.items.map(i => i.id) });
@@ -964,4 +966,9 @@ function initScrollReveal() {
     }, { threshold: 0.1 });
 
     revealElements.forEach(el => observer.observe(el));
+}
+
+function closeSuccessModal() {
+    document.getElementById('success-overlay').classList.remove('active');
+    document.getElementById('success-modal').classList.remove('active');
 }

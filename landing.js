@@ -321,7 +321,9 @@ async function submitLandingOrder(e, productId) {
         
         window.open(`https://wa.me/${settings.store.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
 
-        alert('تم تأكيد طلبك بنجاح!');
+        // Show Success Modal
+        document.getElementById('success-overlay').classList.add('active');
+        document.getElementById('success-modal').classList.add('active');
     } catch (e) {
         console.error('Landing Order Error:', e);
         alert('حدث خطأ أثناء إرسال الطلب: ' + e.message);
@@ -338,4 +340,9 @@ function initPixel(id) {
     document,'script','https://connect.facebook.net/en_US/fbevents.js');
     fbq('init', id);
     fbq('track', 'PageView');
+}
+
+function closeSuccessModal() {
+    document.getElementById('success-overlay').classList.remove('active');
+    document.getElementById('success-modal').classList.remove('active');
 }
