@@ -263,6 +263,9 @@ async function submitLandingOrder(e, productId) {
     const btn = e.submitter;
     if (btn) btn.disabled = true;
 
+    // Pixel InitiateCheckout
+    if (window.fbq) fbq('track', 'InitiateCheckout');
+
     const p = products.find(prod => prod.id === productId);
     const govSelect = document.getElementById('l-gov');
     
@@ -288,6 +291,16 @@ async function submitLandingOrder(e, productId) {
 
     try {
         const savedOrder = await SupabaseService.saveOrder(orderData);
+        
+        // Pixel Purchase
+        if (window.fbq) {
+            fbq('track', 'Purchase', { 
+                value: total, 
+                currency: 'EGP', 
+                content_ids: [p.id],
+                content_type: 'product'
+            });
+        }
         
         // Update coupon uses in Supabase (non-blocking)
         if (appliedCoupon) {

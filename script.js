@@ -282,7 +282,7 @@ function renderSocial() {
     const floatWrap = document.getElementById('floating-buttons-container');
     if (floatWrap && settings.floatingBtns) {
         floatWrap.innerHTML = settings.floatingBtns.map(btn => `
-            <a href="${btn.url}" class="float-btn" target="_blank" style="background:${btn.color};">
+            <a href="${btn.url}" class="float-btn" target="_blank" style="background:${btn.color};" onclick="trackPixel('Contact')">
                 <i class="fa-brands ${btn.icon}"></i>
             </a>
         `).join('');
@@ -631,6 +631,16 @@ function checkout() {
     if (cartGov) document.getElementById('customer-gov').value = cartGov;
 
     updateTotals();
+    
+    // Pixel InitiateCheckout
+    const subtotal = cartItems.reduce((s, i) => s + (i.price * i.qty), 0);
+    trackPixel('InitiateCheckout', { 
+        value: subtotal, 
+        currency: 'EGP', 
+        content_ids: cartItems.map(i => i.id),
+        content_type: 'product'
+    });
+
     document.getElementById('checkout-overlay').classList.add('active');
     document.getElementById('checkout-modal').classList.add('active');
 }
