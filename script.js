@@ -44,10 +44,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     initScrollReveal();
 });
 
-async function fetchWithCache(key, fetchFn) {
+async function fetchWithCache(key, fetchFn, onCacheHit) {
     const cached = localStorage.getItem(`perex_cache_${key}`);
     if (cached) {
         const { data, timestamp } = JSON.parse(cached);
+        if (onCacheHit) onCacheHit(data); // Immediate UI update from cache
         if (Date.now() - timestamp < CACHE_TTL) {
             return data;
         }
@@ -58,31 +59,48 @@ async function fetchWithCache(key, fetchFn) {
 }
 
 async function initData() {
+    const progress = document.getElementById('loader-progress');
+    const updateProgress = (p) => { if (progress) progress.style.width = p + '%'; };
+    
     try {
-        // Run fetches in parallel for better speed
-        const [p, c, s, ship, coup] = await Promise.all([
-            fetchWithCache('products', () => SupabaseService.getProducts()),
-            fetchWithCache('categories', () => SupabaseService.getCategories()),
-            fetchWithCache('settings', () => SupabaseService.getSettings()),
-            fetchWithCache('shipping', () => SupabaseService.getShippingRates()),
-            fetchWithCache('coupons', () => SupabaseService.getCoupons())
+        updateProgress(20);
+        // Load settings first to apply theme immediately
+        settings = await fetchWithCache('settings', () => SupabaseService.getSettings(), (data) => {
+            settings = data;
+            applySettings();
+        });
+        updateProgress(40);
+
+        const [p, c, ship, coup] = await Promise.all([
+            fetchWithCache('products', () => SupabaseService.getProducts(), (data) => { products = data; renderProducts('all'); }),
+            fetchWithCache('categories', () => SupabaseService.getCategories(), (data) => { categories = data; renderCategories(); }),
+            fetchWithCache('shipping', () => SupabaseService.getShippingRates(), (data) => { shippingRates = data; loadShippingSelects(); }),
+            fetchWithCache('coupons', () => SupabaseService.getCoupons(), (data) => { coupons = data; })
         ]);
 
         products = p;
         categories = c;
-        settings = s;
         shippingRates = ship;
         coupons = coup;
+        updateProgress(100);
         
-        // Fallback for default settings
-        if (!settings.theme) settings.theme = "dark";
-        if (!settings.colors) settings.colors = { primary: "#0ea5e9", secondary: "#38bdf8", bg: "#0f172a" };
-        if (!settings.banner) settings.banner = { title: "Perex Store - كل ما تحتاجه", desc: "جودة، أناقة، وتنوع لا محدود في مكان واحد", cta: "تسوق الآن", img: "" };
-        if (!settings.store) settings.store = { whatsapp: "201222711455", pixel: "", waMsg: "🛍️ طلب جديد من Perex Store" };
+        // Final UI updates
+        applySettings();
+        renderCategories();
+        renderProducts('all');
+        loadShippingSelects();
+        
+        setTimeout(hidePreloader, 300);
         
     } catch (e) {
         console.error('Store Init Error:', e);
+        hidePreloader();
     }
+}
+
+function hidePreloader() {
+    const preloader = document.getElementById('preloader');
+    if (preloader) preloader.classList.add('fade-out');
 }
 
 
@@ -363,7 +381,7 @@ function renderProducts(catId, reset = true) {
         card.innerHTML = `
             ${p.badge || (discount > 0 ? `خصم ${discount}%` : '') ? `<span class="product-badge">${p.badge || `خصم ${discount}%`}</span>` : ''}
             <div class="product-image">
-                <img src="${p.images[0] || 'prerx logo.jpeg'}" alt="${p.name}" loading="lazy">
+                <img src="${p.images[0] || 'prerx logo.jpeg'}" alt="${p.name}" loading="lazy" decoding="async">
                 ${p.images.length > 1 ? `
                     <button class="slider-btn prev-btn" onclick="event.stopPropagation(); slideImg(this, -1, ${p.id})"><i class="fa-solid fa-chevron-right"></i></button>
                     <button class="slider-btn next-btn" onclick="event.stopPropagation(); slideImg(this, 1, ${p.id})"><i class="fa-solid fa-chevron-left"></i></button>
@@ -910,8 +928,8 @@ function renderMainSliders() {
     }
 
     container.innerHTML = settings.sliders.map(s => `
-        <div style="flex: 0 0 100%; height: 100%;">
-            <img src="${s.img}" style="width: 100%; height: 100%; object-fit: cover; object-position: center;" loading="lazy">
+        <div style="flex: 0 0 100%; height: 100%; will-change: transform;">
+            <img src="${s.img}" style="width: 100%; height: 100%; object-fit: cover; object-position: center;" loading="lazy" decoding="async">
         </div>
     `).join('');
     
@@ -980,7 +998,7 @@ function initScrollReveal() {
                 entry.target.classList.add('active');
             }
         });
-    }, { threshold: 0.1 });
+    }, { threshold: 0.05, rootMargin: '50px' });
 
     revealElements.forEach(el => observer.observe(el));
 }

@@ -27,10 +27,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadProduct();
 });
 
-async function fetchWithCache(key, fetchFn) {
+async function fetchWithCache(key, fetchFn, onCacheHit) {
     const cached = localStorage.getItem(`perex_cache_${key}`);
     if (cached) {
         const { data, timestamp } = JSON.parse(cached);
+        if (onCacheHit) onCacheHit(data); // Immediate UI update from cache
         if (Date.now() - timestamp < CACHE_TTL) {
             return data;
         }
@@ -41,27 +42,42 @@ async function fetchWithCache(key, fetchFn) {
 }
 
 async function initData() {
+    const progress = document.getElementById('loader-progress');
+    const updateProgress = (p) => { if (progress) progress.style.width = p + '%'; };
+    
     try {
-        const [p, s, ship, coup] = await Promise.all([
-            fetchWithCache('products', () => SupabaseService.getProducts()),
-            fetchWithCache('settings', () => SupabaseService.getSettings()),
-            fetchWithCache('shipping', () => SupabaseService.getShippingRates()),
-            fetchWithCache('coupons', () => SupabaseService.getCoupons())
+        updateProgress(20);
+        settings = await fetchWithCache('settings', () => SupabaseService.getSettings(), (data) => {
+            settings = data;
+            applySettings();
+        });
+        updateProgress(40);
+
+        const [p, ship, coup] = await Promise.all([
+            fetchWithCache('products', () => SupabaseService.getProducts(), (data) => { products = data; loadProduct(); }),
+            fetchWithCache('shipping', () => SupabaseService.getShippingRates(), (data) => { shippingRates = data; }),
+            fetchWithCache('coupons', () => SupabaseService.getCoupons(), (data) => { coupons = data; })
         ]);
 
         products = p;
-        settings = s;
         shippingRates = ship;
         coupons = coup;
+        updateProgress(100);
         
-        // Fallback for default settings
-        if (!settings.colors) settings.colors = { primary: "#0ea5e9", secondary: "#38bdf8", bg: "#0f172a" };
-        if (!settings.store) settings.store = { whatsapp: "201222711455", pixel: "", waMsg: "🛍️ طلب من صفحة الهبوط" };
-        if (!settings.badge) settings.badge = { text: "حماية فائقة", icon: "fa-shield-halved" };
+        applySettings();
+        loadProduct();
+        
+        setTimeout(hidePreloader, 300);
         
     } catch (e) {
         console.error('Landing Init Error:', e);
+        hidePreloader();
     }
+}
+
+function hidePreloader() {
+    const preloader = document.getElementById('preloader');
+    if (preloader) preloader.classList.add('fade-out');
 }
 
 function applySettings() {
@@ -183,11 +199,11 @@ function loadProduct() {
     container.innerHTML = `
         <div class="product-gallery">
             <div class="main-img-wrap">
-                <img src="${p.images[0]}" id="main-img" style="width:100%">
+                <img src="${p.images[0]}" id="main-img" style="width:100%" decoding="async">
             </div>
             ${p.images.length > 1 ? `
                 <div style="display:flex;gap:10px;margin-top:15px;overflow-x:auto;padding-bottom:10px;">
-                    ${p.images.map(img => `<img src="${img}" style="width:80px;height:80px;border-radius:10px;cursor:pointer;border:2px solid transparent" onclick="document.getElementById('main-img').src='${img}'">`).join('')}
+                    ${p.images.map(img => `<img src="${img}" style="width:80px;height:80px;border-radius:10px;cursor:pointer;border:2px solid transparent" onclick="document.getElementById('main-img').src='${img}'" decoding="async">`).join('')}
                 </div>
             ` : ''}
         </div>
