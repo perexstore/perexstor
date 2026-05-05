@@ -45,29 +45,60 @@ async function initData() {
     const progress = document.getElementById('loader-progress');
     const updateProgress = (p) => { if (progress) progress.style.width = p + '%'; };
     
-    try {
-        updateProgress(20);
-        settings = await fetchWithCache('settings', () => SupabaseService.getSettings(), (data) => {
-            settings = data;
-            applySettings();
-        });
-        updateProgress(40);
+    // 1. Try to load from cache immediately
+    const cachedData = ['settings', 'products', 'shipping', 'coupons'].reduce((acc, key) => {
+        const cached = localStorage.getItem(`perex_cache_${key}`);
+        if (cached) acc[key] = JSON.parse(cached).data;
+        return acc;
+    }, {});
 
-        const [p, ship, coup] = await Promise.all([
-            fetchWithCache('products', () => SupabaseService.getProducts(), (data) => { products = data; loadProduct(); }),
-            fetchWithCache('shipping', () => SupabaseService.getShippingRates(), (data) => { shippingRates = data; }),
-            fetchWithCache('coupons', () => SupabaseService.getCoupons(), (data) => { coupons = data; })
+    if (cachedData.settings) {
+        settings = cachedData.settings;
+        applySettings();
+    }
+    if (cachedData.products) {
+        products = cachedData.products;
+        loadProduct();
+    }
+    if (cachedData.shipping) {
+        shippingRates = cachedData.shipping;
+    }
+    if (cachedData.coupons) {
+        coupons = cachedData.coupons;
+    }
+
+    // 2. Fetch fresh data in parallel
+    try {
+        updateProgress(30);
+        const startTime = Date.now();
+        
+        const fetchResults = await Promise.allSettled([
+            SupabaseService.getSettings(),
+            SupabaseService.getProducts(),
+            SupabaseService.getShippingRates(),
+            SupabaseService.getCoupons()
         ]);
 
-        products = p;
-        shippingRates = ship;
-        coupons = coup;
+        const [s, p, ship, coup] = fetchResults.map(r => r.status === 'fulfilled' ? r.value : null);
+
+        if (s) settings = s;
+        if (p) products = p;
+        if (ship) shippingRates = ship;
+        if (coup) coupons = coup;
+
+        // Save to cache
+        const freshData = { settings: s, products: p, shipping: ship, coupons: coup };
+        Object.entries(freshData).forEach(([key, val]) => {
+            if (val) localStorage.setItem(`perex_cache_${key}`, JSON.stringify({ data: val, timestamp: Date.now() }));
+        });
+
         updateProgress(100);
         
         applySettings();
         loadProduct();
         
-        setTimeout(hidePreloader, 300);
+        const elapsed = Date.now() - startTime;
+        setTimeout(hidePreloader, Math.max(0, 300 - elapsed));
         
     } catch (e) {
         console.error('Landing Init Error:', e);

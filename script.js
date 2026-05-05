@@ -62,35 +62,70 @@ async function initData() {
     const progress = document.getElementById('loader-progress');
     const updateProgress = (p) => { if (progress) progress.style.width = p + '%'; };
     
-    try {
-        updateProgress(20);
-        // Load settings first to apply theme immediately
-        settings = await fetchWithCache('settings', () => SupabaseService.getSettings(), (data) => {
-            settings = data;
-            applySettings();
-        });
-        updateProgress(40);
+    // 1. Try to load from cache immediately for instant UI
+    const cachedData = ['settings', 'products', 'categories', 'shipping', 'coupons'].reduce((acc, key) => {
+        const cached = localStorage.getItem(`perex_cache_${key}`);
+        if (cached) acc[key] = JSON.parse(cached).data;
+        return acc;
+    }, {});
 
-        const [p, c, ship, coup] = await Promise.all([
-            fetchWithCache('products', () => SupabaseService.getProducts(), (data) => { products = data; renderProducts('all'); }),
-            fetchWithCache('categories', () => SupabaseService.getCategories(), (data) => { categories = data; renderCategories(); }),
-            fetchWithCache('shipping', () => SupabaseService.getShippingRates(), (data) => { shippingRates = data; loadShippingSelects(); }),
-            fetchWithCache('coupons', () => SupabaseService.getCoupons(), (data) => { coupons = data; })
+    if (cachedData.settings) {
+        settings = cachedData.settings;
+        applySettings();
+    }
+    if (cachedData.categories) {
+        categories = cachedData.categories;
+        renderCategories();
+    }
+    if (cachedData.products) {
+        products = cachedData.products;
+        renderProducts('all');
+    }
+    if (cachedData.shipping) {
+        shippingRates = cachedData.shipping;
+        loadShippingSelects();
+    }
+    if (cachedData.coupons) {
+        coupons = cachedData.coupons;
+    }
+
+    // 2. Fetch all fresh data in parallel
+    try {
+        updateProgress(30);
+        const startTime = Date.now();
+        
+        const fetchResults = await Promise.allSettled([
+            SupabaseService.getSettings(),
+            SupabaseService.getProducts(),
+            SupabaseService.getCategories(),
+            SupabaseService.getShippingRates(),
+            SupabaseService.getCoupons()
         ]);
 
-        products = p;
-        categories = c;
-        shippingRates = ship;
-        coupons = coup;
+        const [s, p, c, ship, coup] = fetchResults.map(r => r.status === 'fulfilled' ? r.value : null);
+
+        if (s) settings = s;
+        if (p) products = p;
+        if (c) categories = c;
+        if (ship) shippingRates = ship;
+        if (coup) coupons = coup;
+
+        // Save to cache
+        const freshData = { settings: s, products: p, categories: c, shipping: ship, coupons: coup };
+        Object.entries(freshData).forEach(([key, val]) => {
+            if (val) localStorage.setItem(`perex_cache_${key}`, JSON.stringify({ data: val, timestamp: Date.now() }));
+        });
+
         updateProgress(100);
         
-        // Final UI updates
+        // 3. Update UI if data changed or first load
         applySettings();
         renderCategories();
         renderProducts('all');
         loadShippingSelects();
         
-        setTimeout(hidePreloader, 300);
+        const elapsed = Date.now() - startTime;
+        setTimeout(hidePreloader, Math.max(0, 300 - elapsed));
         
     } catch (e) {
         console.error('Store Init Error:', e);
@@ -371,43 +406,41 @@ function renderProducts(catId, reset = true) {
     const end = start + productsPerPage;
     const paginated = filtered.slice(0, end);
 
-    container.innerHTML = ''; // Re-render all up to current end to simplify
-    paginated.forEach(p => {
+    const productHTML = paginated.map(p => {
         const discount = p.old_price ? Math.round(((p.old_price - p.price) / p.old_price) * 100) : 0;
-        const card = document.createElement('div');
-        card.className = 'product-card';
-        card.style.cursor = 'pointer';
-        card.onclick = () => window.location.href = `landing.html?id=${p.id}`;
-        card.innerHTML = `
-            ${p.badge || (discount > 0 ? `خصم ${discount}%` : '') ? `<span class="product-badge">${p.badge || `خصم ${discount}%`}</span>` : ''}
-            <div class="product-image">
-                <img src="${p.images[0] || 'prerx logo.jpeg'}" alt="${p.name}" loading="lazy" decoding="async">
-                ${p.images.length > 1 ? `
-                    <button class="slider-btn prev-btn" onclick="event.stopPropagation(); slideImg(this, -1, ${p.id})"><i class="fa-solid fa-chevron-right"></i></button>
-                    <button class="slider-btn next-btn" onclick="event.stopPropagation(); slideImg(this, 1, ${p.id})"><i class="fa-solid fa-chevron-left"></i></button>
-                    <div class="img-counter">1 / ${p.images.length}</div>
-                ` : ''}
-                <div class="product-overlay">
-                    <div class="view-btn"><i class="fa-solid fa-eye"></i></div>
-                </div>
-            </div>
-            <div class="product-info">
-                <p class="product-category">${categories.find(c => c.id === p.category)?.name || ''}</p>
-                <h3 class="product-title">${p.name}</h3>
-                <div style="color:#fbbf24; font-size:0.8rem; margin-bottom:10px;">
-                    ${generateStarRating(p.rating || 5)}
-                </div>
-                <div class="product-price-row" style="margin-bottom:10px;">
-                    <div style="display:flex;flex-direction:column;">
-                        <span class="product-price">${p.price} ج.م</span>
-                        ${p.old_price ? `<del class="product-old-price" style="font-size:0.8rem;color:#999">${p.old_price} ج.م</del>` : ''}
+        return `
+            <div class="product-card" style="cursor: pointer;" onclick="window.location.href = 'landing.html?id=${p.id}'">
+                ${p.badge || (discount > 0 ? `خصم ${discount}%` : '') ? `<span class="product-badge">${p.badge || `خصم ${discount}%`}</span>` : ''}
+                <div class="product-image">
+                    <img src="${p.images[0] || 'prerx logo.jpeg'}" alt="${p.name}" loading="lazy" decoding="async">
+                    ${p.images.length > 1 ? `
+                        <button class="slider-btn prev-btn" onclick="event.stopPropagation(); slideImg(this, -1, ${p.id})"><i class="fa-solid fa-chevron-right"></i></button>
+                        <button class="slider-btn next-btn" onclick="event.stopPropagation(); slideImg(this, 1, ${p.id})"><i class="fa-solid fa-chevron-left"></i></button>
+                        <div class="img-counter">1 / ${p.images.length}</div>
+                    ` : ''}
+                    <div class="product-overlay">
+                        <div class="view-btn"><i class="fa-solid fa-eye"></i></div>
                     </div>
                 </div>
-                <button class="btn btn-primary" onclick="event.stopPropagation(); addToCart(${p.id})" style="width:100%; padding:10px; font-weight:bold; font-size:1rem;">أضف للسلة <i class="fa-solid fa-cart-plus"></i></button>
+                <div class="product-info">
+                    <p class="product-category">${categories.find(c => c.id === p.category)?.name || ''}</p>
+                    <h3 class="product-title">${p.name}</h3>
+                    <div style="color:#fbbf24; font-size:0.8rem; margin-bottom:10px;">
+                        ${generateStarRating(p.rating || 5)}
+                    </div>
+                    <div class="product-price-row" style="margin-bottom:10px;">
+                        <div style="display:flex;flex-direction:column;">
+                            <span class="product-price">${p.price} ج.م</span>
+                            ${p.old_price ? `<del class="product-old-price" style="font-size:0.8rem;color:#999">${p.old_price} ج.م</del>` : ''}
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="event.stopPropagation(); addToCart(${p.id})" style="width:100%; padding:10px; font-weight:bold; font-size:1rem;">أضف للسلة <i class="fa-solid fa-cart-plus"></i></button>
+                </div>
             </div>
         `;
-        container.appendChild(card);
-    });
+    }).join('');
+
+    container.innerHTML = productHTML;
 
     // Load More Button
     let loadMoreBtn = document.getElementById('load-more-btn');

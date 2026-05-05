@@ -9,13 +9,16 @@
     <meta name="description" content="Perex Store - متجرك الأول لكل ما تحتاجه في مصر. جودة، أناقة، وتنوع لا محدود.">
     <meta name="keywords" content="تسوق أونلاين, منتجات مميزة, أفضل الأسعار, Perex Store, كل ما تحتاجه">
     
-    <!-- Google Fonts -->
+    <!-- Preconnect to critical domains -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com">
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
-    <!-- FontAwesome for Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://ecbxkudufxpvipxfcdtj.supabase.co">
+    <link rel="dns-prefetch" href="https://ecbxkudufxpvipxfcdtj.supabase.co">
+
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <!-- FontAwesome for Icons - Loaded Asynchronously -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
     <!-- CSS link -->
     <link rel="stylesheet" href="style.css?v=1.1">
     
@@ -89,7 +92,7 @@
                 </div>
             </div>
             <div class="hero-image">
-                <img src="https://images.unsplash.com/photo-1601593346740-925612772716?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="إكسسوارات هواتف" width="600" height="600" loading="eager">
+                <img src="https://images.unsplash.com/photo-1601593346740-925612772716?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="إكسسوارات هواتف" width="600" height="600" loading="eager" fetchpriority="high">
                 <div class="glass-card">
                     <i class="fa-solid fa-shield-halved"></i>
                     <span>حماية فائقة</span>
