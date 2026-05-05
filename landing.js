@@ -2,6 +2,7 @@ let products = [];
 let settings = {};
 let shippingRates = [];
 let coupons = [];
+const CACHE_TTL = 300000; // 5 minutes in ms
 
 // State
 let appliedCoupon = null;
@@ -26,12 +27,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadProduct();
 });
 
+async function fetchWithCache(key, fetchFn) {
+    const cached = localStorage.getItem(`perex_cache_${key}`);
+    if (cached) {
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < CACHE_TTL) {
+            return data;
+        }
+    }
+    const data = await fetchFn();
+    localStorage.setItem(`perex_cache_${key}`, JSON.stringify({ data, timestamp: Date.now() }));
+    return data;
+}
+
 async function initData() {
     try {
-        products = await SupabaseService.getProducts();
-        settings = await SupabaseService.getSettings();
-        shippingRates = await SupabaseService.getShippingRates();
-        coupons = await SupabaseService.getCoupons();
+        const [p, s, ship, coup] = await Promise.all([
+            fetchWithCache('products', () => SupabaseService.getProducts()),
+            fetchWithCache('settings', () => SupabaseService.getSettings()),
+            fetchWithCache('shipping', () => SupabaseService.getShippingRates()),
+            fetchWithCache('coupons', () => SupabaseService.getCoupons())
+        ]);
+
+        products = p;
+        settings = s;
+        shippingRates = ship;
+        coupons = coup;
         
         // Fallback for default settings
         if (!settings.colors) settings.colors = { primary: "#0ea5e9", secondary: "#38bdf8", bg: "#0f172a" };

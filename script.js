@@ -4,6 +4,7 @@ let coupons = [];
 let orders = [];
 let settings = {};
 let shippingRates = [];
+const CACHE_TTL = 300000; // 5 minutes in ms
 
 // Safety check for settings properties
 if (!settings.theme) settings.theme = "dark";
@@ -43,13 +44,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     initScrollReveal();
 });
 
+async function fetchWithCache(key, fetchFn) {
+    const cached = localStorage.getItem(`perex_cache_${key}`);
+    if (cached) {
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < CACHE_TTL) {
+            return data;
+        }
+    }
+    const data = await fetchFn();
+    localStorage.setItem(`perex_cache_${key}`, JSON.stringify({ data, timestamp: Date.now() }));
+    return data;
+}
+
 async function initData() {
     try {
-        products = await SupabaseService.getProducts();
-        categories = await SupabaseService.getCategories();
-        settings = await SupabaseService.getSettings();
-        shippingRates = await SupabaseService.getShippingRates();
-        coupons = await SupabaseService.getCoupons();
+        // Run fetches in parallel for better speed
+        const [p, c, s, ship, coup] = await Promise.all([
+            fetchWithCache('products', () => SupabaseService.getProducts()),
+            fetchWithCache('categories', () => SupabaseService.getCategories()),
+            fetchWithCache('settings', () => SupabaseService.getSettings()),
+            fetchWithCache('shipping', () => SupabaseService.getShippingRates()),
+            fetchWithCache('coupons', () => SupabaseService.getCoupons())
+        ]);
+
+        products = p;
+        categories = c;
+        settings = s;
+        shippingRates = ship;
+        coupons = coup;
         
         // Fallback for default settings
         if (!settings.theme) settings.theme = "dark";
@@ -62,13 +85,7 @@ async function initData() {
     }
 }
 
-// Refresh data when window is focused
-window.addEventListener('focus', async () => {
-    await initData();
-    applySettings();
-    renderCategories();
-    renderProducts(currentCategory || 'all');
-});
+
 
 function applySettings() {
     // Themes Definition (Keep in sync with admin.js)

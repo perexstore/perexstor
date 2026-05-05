@@ -168,11 +168,17 @@ async function saveAll() {
         await SupabaseService.saveSettings(settings);
         // Also sync other lists if they were modified
         await SupabaseService.saveShippingRates(shipping);
+        clearClientCache();
         showToast('تمت المزامنة بنجاح');
     } catch (e) {
         console.error('Supabase Sync Error:', e);
         showToast('فشل المزامنة مع Supabase', 'error');
     }
+}
+
+function clearClientCache() {
+    const keys = ['products', 'categories', 'settings', 'shipping', 'coupons'];
+    keys.forEach(k => localStorage.removeItem(`perex_cache_${k}`));
 }
 
 // ===== LOGIN LOGIC =====
@@ -496,6 +502,7 @@ async function saveCategory() {
     try {
         await SupabaseService.saveCategory(catData);
         categories = await SupabaseService.getCategories();
+        clearClientCache();
         closeModal('cat-modal');
         renderCategories();
         showToast('تم حفظ القسم بنجاح');
@@ -665,6 +672,7 @@ async function saveProduct() {
     try {
         await SupabaseService.saveProduct(prodData);
         products = await SupabaseService.getProducts();
+        clearClientCache();
         closeModal('product-modal');
         renderProductsAdmin();
         updateStats();
@@ -713,6 +721,7 @@ async function toggleProductVisibility(id) {
     try {
         await SupabaseService.saveProduct({ id, is_visible: newStatus });
         p.is_visible = newStatus;
+        clearClientCache();
         showToast('تم تحديث حالة الظهور');
     } catch (e) {
         showToast('فشل تحديث الحالة: ' + e.message, 'error');
