@@ -866,7 +866,7 @@ async function deleteCoupon(id) {
 
 // ===== ACTIONS: ORDERS =====
 function viewOrder(id) {
-    const o = orders.find(ord => ord.id === id);
+    const o = orders.find(ord => ord.id == id);
     const body = document.getElementById('order-modal-body');
     currentOrderToPrint = o;
 
@@ -935,7 +935,7 @@ function viewOrder(id) {
 }
 
 async function saveOrderDetails(id) {
-    const o = orders.find(ord => ord.id === id);
+    const o = orders.find(ord => ord.id == id);
     if (!o) return;
     
     const updatedData = {
@@ -978,7 +978,7 @@ async function deleteOrder(id) {
 async function updateOrderStatus(id, status) {
     try {
         await SupabaseService.updateOrderStatus(id, status);
-        const o = orders.find(ord => ord.id === id);
+        const o = orders.find(ord => ord.id == id);
         if (o) o.status = status;
         renderOrdersAdmin();
         updateStats();
@@ -1817,7 +1817,7 @@ function importDatabase(input) {
 async function saveOrderNote(id, note) {
     try {
         await SupabaseService.saveOrder({ id, admin_note: note });
-        const o = orders.find(ord => ord.id === id);
+        const o = orders.find(ord => ord.id == id);
         if (o) o.adminNote = note;
         showToast('تم حفظ الملاحظة');
     } catch (e) {
@@ -1842,11 +1842,12 @@ function renderShippingSettings() {
 }
 
 async function updateShippingPrice(id, price) {
-    const gov = shipping.find(g => g.id === id);
+    const gov = shipping.find(g => g.id == id);
     if (gov) {
         gov.price = parseFloat(price) || 0;
         try {
             await SupabaseService.saveShippingRate(gov);
+            clearClientCache();
             showToast('تم تحديث السعر');
         } catch (e) {
             showToast('فشل التحديث في Supabase', 'error');
