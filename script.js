@@ -141,6 +141,10 @@ function hidePreloader() {
 
 
 function applySettings() {
+    // Safety defaults — prevent crashes if Supabase returns partial data
+    if (!settings.store)  settings.store  = {};
+    if (!settings.banner) settings.banner = {};
+    if (!settings.badge)  settings.badge  = {};
     // Themes Definition (Keep in sync with admin.js)
     const THEMES = {
         dark: { 
@@ -284,6 +288,13 @@ function applySettings() {
 }
 
 function initPixel(id) {
+    if (!id) return;
+    if (window.fbq) {
+        // Pixel already loaded — just re-init with new ID if needed
+        fbq('init', id);
+        fbq('track', 'PageView');
+        return;
+    }
     !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
     n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
     n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
@@ -734,10 +745,24 @@ async function submitOrder(e) {
     }
 
     // Calculate shipping
-    let shipping = parseFloat(govSelect.value);
-    const uiShippingText = document.getElementById('cart-shipping-price').innerText;
-    if (uiShippingText.includes('مجاني')) shipping = 0;
-
+    let originalShipping = parseFloat(govSelect.value) || 0;
+    
+    // Check if free shipping applies
+    let hasEligibleItems = false;
+    if (appliedCoupon) {
+        if (appliedCoupon.apply_type === 'all' || !appliedCoupon.apply_type) {
+            hasEligibleItems = cartItems.length > 0;
+        } else if (appliedCoupon.apply_type === 'categories') {
+            hasEligibleItems = cartItems.some(item => {
+                const p = products.find(prod => prod.id === item.id);
+                return p && appliedCoupon.target_ids.includes(p.category);
+            });
+        } else if (appliedCoupon.apply_type === 'products') {
+            hasEligibleItems = cartItems.some(item => appliedCoupon.target_ids.includes(item.id.toString()));
+        }
+    }
+    
+    const shipping = (appliedCoupon && appliedCoupon.free_shipping && hasEligibleItems) ? 0 : originalShipping;
     const total = subtotal - discount + shipping;
 
     const orderData = {

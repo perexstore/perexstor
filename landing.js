@@ -112,6 +112,10 @@ function hidePreloader() {
 }
 
 function applySettings() {
+    // Safety defaults — prevent crashes if Supabase returns partial data
+    if (!settings.store)  settings.store  = {};
+    if (!settings.banner) settings.banner = {};
+    if (!settings.badge)  settings.badge  = {};
     const THEMES = {
         dark: { 
             primary: "#38bdf8", secondary: "#818cf8", bg: "#020617", card: "#0f172a", 
@@ -208,6 +212,11 @@ function applySettings() {
     root.style.setProperty('--glass-border', colors.border);
     document.body.style.backgroundColor = colors.bg;
     document.body.style.color = colors.text;
+
+    // Pixel Initialization — fire as early as possible from settings
+    if (settings.store && settings.store.pixel) {
+        initPixel(settings.store.pixel);
+    }
 }
 
 function loadProduct() {
@@ -221,9 +230,10 @@ function loadProduct() {
     }
 
     // Pixel ViewContent
-    if (settings.store.pixel || p.pixel_id) {
-        initPixel(p.pixel_id || settings.store.pixel);
-        fbq('track', 'ViewContent', { content_ids: [p.id], content_name: p.name, value: p.price, currency: 'EGP' });
+    const pixelId = (settings.store && settings.store.pixel) || p.pixel_id;
+    if (pixelId) {
+        initPixel(pixelId);
+        if (window.fbq) fbq('track', 'ViewContent', { content_ids: [p.id], content_name: p.name, value: p.price, currency: 'EGP' });
     }
 
     const container = document.getElementById('landing-content');
@@ -300,29 +310,95 @@ function applyLandingCoupon(basePrice) {
     const msg = document.getElementById('l-coupon-msg');
     if (!code) return;
 
-    const coupon = coupons.find(c => c.code === code && c.is_active);
+    const coupon = coupons.find(c => c.code === code);
     if (!coupon) {
-        msg.innerText = 'كود غير صحيح';
+        msg.innerText = 'كود غير موجود';
+        msg.style.color = '#ef4444';
+        return;
+    }
+
+    if (!coupon.is_active) {
+        msg.innerText = 'هذا الكود معطل حالياً';
+        msg.style.color = '#ef4444';
+        return;
+    }
+
+    if (coupon.expiry_date && new Date(coupon.expiry_date) < new Date()) {
+        msg.innerText = 'هذا الكود منتهي الصلاحية';
+        msg.style.color = '#ef4444';
+        return;
+    }
+
+    if (coupon.current_uses >= coupon.max_uses) {
+        msg.innerText = 'تم الوصول للحد الأقصى لاستخدام الكود';
+        msg.style.color = '#ef4444';
+        return;
+    }
+
+    // Check eligibility for the current product
+    const urlParams = new URLSearchParams(window.location.search);
+    const productId = parseInt(urlParams.get('id'));
+    const p = products.find(prod => prod.id === productId);
+
+    let isEligible = false;
+    if (coupon.apply_type === 'all' || !coupon.apply_type) {
+        isEligible = true;
+    } else if (coupon.apply_type === 'categories') {
+        isEligible = p && coupon.target_ids.includes(p.category);
+    } else if (coupon.apply_type === 'products') {
+        isEligible = p && coupon.target_ids.includes(p.id.toString());
+    }
+
+    if (!isEligible) {
+        msg.innerText = 'هذا الكوبون لا ينطبق على هذا المنتج';
+        msg.style.color = '#ef4444';
+        return;
+    }
+
+    if (coupon.min_order && basePrice < coupon.min_order) {
+        msg.innerText = `الحد الأدنى لاستخدام الكوبون هو ${coupon.min_order} ج.م`;
         msg.style.color = '#ef4444';
         return;
     }
 
     appliedCoupon = coupon;
-    msg.innerText = `تم تطبيق خصم ${coupon.discount}%`;
+    const discountVal = coupon.type === 'fixed' ? `${coupon.discount} ج.م` : `${coupon.discount}%`;
+    
+    if (coupon.discount > 0 && coupon.free_shipping) {
+        msg.innerText = `تم تطبيق خصم ${discountVal} + شحن مجاني!`;
+    } else if (coupon.discount > 0) {
+        msg.innerText = `تم تطبيق خصم بقيمة ${discountVal}`;
+    } else if (coupon.free_shipping) {
+        msg.innerText = `تم تطبيق عرض الشحن المجاني!`;
+    }
+    
     msg.style.color = '#22c55e';
     updateLandingTotal(basePrice);
 }
 
 function updateLandingTotal(basePrice) {
-    const ship = parseFloat(document.getElementById('l-gov').value) || 0;
-    const discount = appliedCoupon ? Math.round(basePrice * (appliedCoupon.discount / 100)) : 0;
+    const originalShip = parseFloat(document.getElementById('l-gov').value) || 0;
+    const discount = appliedCoupon ? (appliedCoupon.type === 'fixed' ? appliedCoupon.discount : Math.round(basePrice * (appliedCoupon.discount / 100))) : 0;
+    
+    // Check if free shipping applies
+    const freeShipping = appliedCoupon && appliedCoupon.free_shipping;
+    const ship = freeShipping ? 0 : originalShip;
+    
     const total = basePrice - discount + ship;
 
-    document.getElementById('l-ship-val').innerText = ship + ' ج.م';
+    if (freeShipping) {
+        document.getElementById('l-ship-val').innerHTML = `<del style="color:#999; font-size:0.8rem;">${originalShip} ج.م</del> <span style="color:#22c55e;">مجاني</span>`;
+    } else {
+        document.getElementById('l-ship-val').innerText = ship + ' ج.م';
+    }
+
     if (discount > 0) {
         document.getElementById('l-discount-row').style.display = 'flex';
         document.getElementById('l-discount-val').innerText = `-${discount} ج.م`;
+    } else {
+        document.getElementById('l-discount-row').style.display = 'none';
     }
+    
     document.getElementById('l-total-val').innerText = total + ' ج.م';
 }
 
@@ -337,8 +413,13 @@ async function submitLandingOrder(e, productId) {
     const p = products.find(prod => prod.id === productId);
     const govSelect = document.getElementById('l-gov');
     
-    const ship = parseFloat(govSelect.value) || 0;
-    const discount = appliedCoupon ? Math.round(p.price * (appliedCoupon.discount / 100)) : 0;
+    const originalShip = parseFloat(govSelect.value) || 0;
+    const discount = appliedCoupon ? (appliedCoupon.type === 'fixed' ? appliedCoupon.discount : Math.round(p.price * (appliedCoupon.discount / 100))) : 0;
+    
+    // Free shipping check
+    const freeShipping = appliedCoupon && appliedCoupon.free_shipping;
+    const ship = freeShipping ? 0 : originalShip;
+    
     const total = p.price - discount + ship;
 
     const orderData = {
@@ -400,7 +481,12 @@ async function submitLandingOrder(e, productId) {
 }
 
 function initPixel(id) {
-    if (window.fbq) return;
+    if (!id) return;
+    if (window.fbq) {
+        // Pixel already loaded — just re-init with new ID if needed
+        fbq('init', id);
+        return;
+    }
     !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
     n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
     n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
