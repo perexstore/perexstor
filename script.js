@@ -581,7 +581,12 @@ function updateTotals() {
         document.getElementById('cart-discount-row').style.display = 'none';
     }
 
-    const originalShipPrice = parseFloat(document.getElementById('cart-gov').value) || 0;
+    // Read shipping from whichever governorate select has a value (cart or checkout)
+    const cartGovEl = document.getElementById('cart-gov');
+    const customerGovEl = document.getElementById('customer-gov');
+    const govValue = (customerGovEl && customerGovEl.value) ? customerGovEl.value
+                   : (cartGovEl ? cartGovEl.value : '');
+    const originalShipPrice = parseFloat(govValue) || 0;
     
     // Check if cart has eligible items for the coupon
     let hasEligibleItems = false;
@@ -627,8 +632,25 @@ function updateTotals() {
     }
 }
 
-function calculateCartTotal() { updateTotals(); }
-function calculateShipping() { updateTotals(); }
+function calculateCartTotal() {
+    // Sync cart-gov → customer-gov so checkout modal stays in sync
+    const cartGov = document.getElementById('cart-gov');
+    const customerGov = document.getElementById('customer-gov');
+    if (cartGov && customerGov && cartGov.value) {
+        customerGov.value = cartGov.value;
+    }
+    updateTotals();
+}
+
+function calculateShipping() {
+    // Sync customer-gov → cart-gov so updateTotals reads the right value
+    const customerGov = document.getElementById('customer-gov');
+    const cartGov = document.getElementById('cart-gov');
+    if (customerGov && cartGov && customerGov.value) {
+        cartGov.value = customerGov.value;
+    }
+    updateTotals();
+}
 
 // ===== COUPON LOGIC =====
 function applyCoupon() {

@@ -6,6 +6,7 @@ const CACHE_TTL = 300000; // 5 minutes in ms
 
 // State
 let appliedCoupon = null;
+let currentProductPrice = 0; // Stored globally so updateLandingTotal works without args
 
 function generateStarRating(rating) {
     let stars = '';
@@ -223,6 +224,7 @@ function loadProduct() {
     const urlParams = new URLSearchParams(window.location.search);
     const id = parseInt(urlParams.get('id'));
     const p = products.find(prod => prod.id === id);
+    if (p) currentProductPrice = p.price; // Store for use by updateLandingTotal
 
     if (!p) {
         document.getElementById('landing-content').innerHTML = '<div style="grid-column: 1/-1; text-align: center;"><h2>المنتج غير موجود</h2><a href="index.html" class="btn btn-primary">العودة للمتجر</a></div>';
@@ -280,7 +282,7 @@ function loadProduct() {
                     </div>
 
                     <div class="form-group">
-                        <select id="l-gov" required class="review-input" style="margin-bottom:10px;" onchange="updateLandingTotal(${p.price})">
+                        <select id="l-gov" required class="review-input" style="margin-bottom:10px;" onchange="updateLandingTotal()">
                             <option value="" disabled selected>المحافظة...</option>
                             ${shippingRates.map(r => `<option value="${r.price}" data-name="${r.name}">${r.name} (${r.price} ج.م)</option>`).join('')}
                         </select>
@@ -373,33 +375,55 @@ function applyLandingCoupon(basePrice) {
     }
     
     msg.style.color = '#22c55e';
-    updateLandingTotal(basePrice);
+    updateLandingTotal(basePrice || currentProductPrice);
 }
 
 function updateLandingTotal(basePrice) {
-    const originalShip = parseFloat(document.getElementById('l-gov').value) || 0;
-    const discount = appliedCoupon ? (appliedCoupon.type === 'fixed' ? appliedCoupon.discount : Math.round(basePrice * (appliedCoupon.discount / 100))) : 0;
-    
-    // Check if free shipping applies
+    // Use passed price, or fall back to the globally stored product price
+    const price = basePrice || currentProductPrice;
+    if (!price) return;
+
+    const govEl = document.getElementById('l-gov');
+    const originalShip = govEl ? (parseFloat(govEl.value) || 0) : 0;
+
+    // Discount calculation
+    const discount = appliedCoupon
+        ? (appliedCoupon.type === 'fixed'
+            ? Math.min(appliedCoupon.discount, price)
+            : Math.round(price * (appliedCoupon.discount / 100)))
+        : 0;
+
+    // Free shipping check
     const freeShipping = appliedCoupon && appliedCoupon.free_shipping;
     const ship = freeShipping ? 0 : originalShip;
-    
-    const total = basePrice - discount + ship;
 
-    if (freeShipping) {
-        document.getElementById('l-ship-val').innerHTML = `<del style="color:#999; font-size:0.8rem;">${originalShip} ج.م</del> <span style="color:#22c55e;">مجاني</span>`;
-    } else {
-        document.getElementById('l-ship-val').innerText = ship + ' ج.م';
+    const total = price - discount + ship;
+
+    // Update shipping display
+    const shipEl = document.getElementById('l-ship-val');
+    if (shipEl) {
+        if (freeShipping) {
+            shipEl.innerHTML = `<del style="color:#999; font-size:0.8rem;">${originalShip} ج.م</del> <span style="color:#22c55e;">مجاني</span>`;
+        } else {
+            shipEl.innerText = ship + ' ج.م';
+        }
     }
 
-    if (discount > 0) {
-        document.getElementById('l-discount-row').style.display = 'flex';
-        document.getElementById('l-discount-val').innerText = `-${discount} ج.م`;
-    } else {
-        document.getElementById('l-discount-row').style.display = 'none';
+    // Update discount display
+    const discountRow = document.getElementById('l-discount-row');
+    const discountVal = document.getElementById('l-discount-val');
+    if (discountRow && discountVal) {
+        if (discount > 0) {
+            discountRow.style.display = 'flex';
+            discountVal.innerText = `-${discount} ج.م`;
+        } else {
+            discountRow.style.display = 'none';
+        }
     }
-    
-    document.getElementById('l-total-val').innerText = total + ' ج.م';
+
+    // Update total
+    const totalEl = document.getElementById('l-total-val');
+    if (totalEl) totalEl.innerText = total + ' ج.م';
 }
 
 async function submitLandingOrder(e, productId) {
