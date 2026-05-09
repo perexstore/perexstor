@@ -331,50 +331,54 @@ function renderLandingVariants() {
     
     landingVariantRows.forEach((row, index) => {
         html += `
-            <div style="background:rgba(255,255,255,0.02); border:1px solid var(--bo); padding:10px; border-radius:10px; margin-bottom:10px; display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+            <div class="variant-row-container">
+                <div class="variant-row-header">
+                    <span style="font-weight:bold; color:var(--primary-color);">صنف ${index + 1}</span>
         `;
+        if (landingVariantRows.length > 1) {
+            html += `
+                    <button type="button" onclick="removeVariantRow(${row.id})" style="background:none; border:none; color:#ef4444; cursor:pointer;"><i class="fa-solid fa-trash"></i> إزالة</button>
+            `;
+        }
+        html += `</div>`;
         
         if (p.has_colors && p.colors && p.colors.length > 0) {
             html += `
-                <div style="flex:1; min-width:100px;">
-                    <select class="review-input" style="padding:8px;" onchange="updateVariantRow(${row.id}, 'color', this.value)" required>
-                        <option value="" disabled ${!row.color ? 'selected' : ''}>اللون...</option>
-                        ${p.colors.map(c => `<option value="${c}" ${row.color === c ? 'selected' : ''}>${c}</option>`).join('')}
-                    </select>
+                <div class="variant-group">
+                    <label class="variant-label">اللون: <span class="selected-val">${row.color || 'اختر اللون'}</span></label>
+                    <div class="variant-options">
+                        ${p.colors.map(c => `<button type="button" class="variant-btn ${row.color === c ? 'active' : ''}" onclick="updateVariantRow(${row.id}, 'color', '${c}')">${c}</button>`).join('')}
+                    </div>
                 </div>
             `;
         }
         
         if (p.has_sizes && p.sizes && p.sizes.length > 0) {
             html += `
-                <div style="flex:1; min-width:100px;">
-                    <select class="review-input" style="padding:8px;" onchange="updateVariantRow(${row.id}, 'size', this.value)" required>
-                        <option value="" disabled ${!row.size ? 'selected' : ''}>المقاس...</option>
-                        ${p.sizes.map(s => `<option value="${s}" ${row.size === s ? 'selected' : ''}>${s}</option>`).join('')}
-                    </select>
+                <div class="variant-group">
+                    <label class="variant-label">المقاس: <span class="selected-val">${row.size || 'اختر المقاس'}</span></label>
+                    <div class="variant-options">
+                        ${p.sizes.map(s => `<button type="button" class="variant-btn ${row.size === s ? 'active' : ''}" onclick="updateVariantRow(${row.id}, 'size', '${s}')">${s}</button>`).join('')}
+                    </div>
                 </div>
             `;
         }
         
         html += `
-                <div style="display:flex; align-items:center; gap:10px; background:rgba(0,0,0,0.2); border-radius:8px; padding:5px 10px;">
-                    <button type="button" onclick="updateVariantRow(${row.id}, 'qty', ${row.qty - 1})" style="background:none;border:none;color:var(--text-color);cursor:pointer;"><i class="fa-solid fa-minus"></i></button>
-                    <span style="min-width:20px;text-align:center;">${row.qty}</span>
-                    <button type="button" onclick="updateVariantRow(${row.id}, 'qty', ${row.qty + 1})" style="background:none;border:none;color:var(--text-color);cursor:pointer;"><i class="fa-solid fa-plus"></i></button>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
+                    <span style="font-weight:bold;">الكمية:</span>
+                    <div style="display:flex; align-items:center; gap:15px; background:rgba(0,0,0,0.3); border-radius:10px; padding:8px 15px; border: 1px solid var(--border-color);">
+                        <button type="button" onclick="updateVariantRow(${row.id}, 'qty', ${row.qty + 1})" style="background:none;border:none;color:var(--primary-color);cursor:pointer;font-size:1.1rem;"><i class="fa-solid fa-plus"></i></button>
+                        <span style="min-width:30px;text-align:center;font-weight:bold;font-size:1.1rem;">${row.qty}</span>
+                        <button type="button" onclick="updateVariantRow(${row.id}, 'qty', ${row.qty - 1})" style="background:none;border:none;color:var(--primary-color);cursor:pointer;font-size:1.1rem;"><i class="fa-solid fa-minus"></i></button>
+                    </div>
                 </div>
+            </div>
         `;
-        
-        if (landingVariantRows.length > 1) {
-            html += `
-                <button type="button" class="btn btn-danger" style="padding:5px 10px; border-radius:8px;" onclick="removeVariantRow(${row.id})"><i class="fa-solid fa-trash"></i></button>
-            `;
-        }
-        
-        html += `</div>`;
     });
     
     html += `
-        <button type="button" class="btn btn-secondary" style="width:100%; padding:8px; border-radius:10px; margin-bottom:15px; font-size:0.9rem;" onclick="addVariantRow()">
+        <button type="button" class="btn btn-secondary" style="width:100%; padding:12px; border-radius:12px; margin-bottom:20px; font-size:1rem; border: 2px dashed var(--primary-color);" onclick="addVariantRow()">
             <i class="fa-solid fa-plus"></i> إضافة صنف آخر (لون/مقاس مختلف)
         </button>
     `;
@@ -557,6 +561,18 @@ async function submitLandingOrder(e, productId) {
     let orderItems = [];
     
     if (p.has_colors || p.has_sizes) {
+        let missingSelection = false;
+        for (let i = 0; i < landingVariantRows.length; i++) {
+            const r = landingVariantRows[i];
+            if (p.has_colors && p.colors && p.colors.length > 0 && !r.color) missingSelection = true;
+            if (p.has_sizes && p.sizes && p.sizes.length > 0 && !r.size) missingSelection = true;
+        }
+        if (missingSelection) {
+            alert('الرجاء اختيار اللون والمقاس لجميع الأصناف المطلوبة.');
+            if (btn) btn.disabled = false;
+            return;
+        }
+
         totalQty = landingVariantRows.reduce((sum, r) => sum + r.qty, 0);
         
         orderItems = landingVariantRows.map(r => {

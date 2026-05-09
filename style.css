@@ -1461,3 +1461,65 @@ html[dir="rtl"] .slider-overlay-text {
     .slider-overlay-text h2 { font-size: 1.8rem; }
     .slider-overlay-text p { font-size: 1rem; }
 }
+
+/* ===== Variants UI ===== */
+.variant-group {
+    margin-bottom: 15px;
+    width: 100%;
+}
+.variant-label {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: var(--text-color);
+}
+.variant-label .selected-val {
+    color: var(--primary-color);
+    font-weight: normal;
+}
+.variant-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.variant-btn {
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: var(--tr);
+    min-width: 60px;
+    text-align: center;
+}
+.variant-btn:hover {
+    border-color: var(--primary-color);
+    background: rgba(14, 165, 233, 0.1);
+}
+.variant-btn.active {
+    background: var(--primary-color);
+    color: #fff;
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+.variant-row-container {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border-color);
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.variant-row-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding-bottom: 10px;
+    margin-bottom: 5px;
+}
