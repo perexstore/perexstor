@@ -536,6 +536,15 @@ function openProductModal() {
     document.getElementById('prod-desc').value = '';
     document.getElementById('prod-pixel').value = '';
     document.getElementById('prod-img-url').value = '';
+    
+    document.getElementById('prod-has-colors').checked = false;
+    document.getElementById('prod-colors-wrap').style.display = 'none';
+    document.getElementById('prod-colors').value = '';
+    
+    document.getElementById('prod-has-sizes').checked = false;
+    document.getElementById('prod-sizes-wrap').style.display = 'none';
+    document.getElementById('prod-sizes').value = '';
+
     selectedImages = [];
     renderImgPreviews();
     document.getElementById('product-modal').classList.add('active');
@@ -652,6 +661,18 @@ async function saveProduct() {
     if (selectedImages.length === 0) {
         return showToast('برجاء إضافة صورة واحدة على الأقل للمنتج', 'error');
     }
+    
+    const has_colors = document.getElementById('prod-has-colors').checked;
+    let colors = [];
+    if (has_colors) {
+        colors = document.getElementById('prod-colors').value.split(',').map(c => c.trim()).filter(c => c);
+    }
+    
+    const has_sizes = document.getElementById('prod-has-sizes').checked;
+    let sizes = [];
+    if (has_sizes) {
+        sizes = document.getElementById('prod-sizes').value.split(',').map(s => s.trim()).filter(s => s);
+    }
 
     const prodData = {
         name,
@@ -664,6 +685,10 @@ async function saveProduct() {
         rating: parseFloat(document.getElementById('prod-rating').value) || 5,
         pixel_id: document.getElementById('prod-pixel').value,
         images: [...selectedImages],
+        has_colors: has_colors,
+        colors: colors,
+        has_sizes: has_sizes,
+        sizes: sizes,
         is_visible: true
     };
 
@@ -696,6 +721,15 @@ function editProduct(id) {
     document.getElementById('prod-desc').value = p.description || '';
     document.getElementById('prod-rating').value = p.rating || 5;
     document.getElementById('prod-pixel').value = p.pixel_id || '';
+    
+    document.getElementById('prod-has-colors').checked = p.has_colors || false;
+    document.getElementById('prod-colors-wrap').style.display = p.has_colors ? 'block' : 'none';
+    document.getElementById('prod-colors').value = (p.colors || []).join(', ');
+    
+    document.getElementById('prod-has-sizes').checked = p.has_sizes || false;
+    document.getElementById('prod-sizes-wrap').style.display = p.has_sizes ? 'block' : 'none';
+    document.getElementById('prod-sizes').value = (p.sizes || []).join(', ');
+
     selectedImages = [...p.images];
     renderImgPreviews();
     document.getElementById('product-modal').classList.add('active');

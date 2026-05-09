@@ -30,7 +30,7 @@ async function handleSupabase(promise) {
 const SupabaseService = {
     // Products
     async getProducts() {
-        return await handleSupabase(_supabase.from('products').select('id, name, price, old_price, images, category, rating, is_visible, badge, description, pixel_id').order('created_at', { ascending: false }));
+        return await handleSupabase(_supabase.from('products').select('*').order('created_at', { ascending: false }));
     },
     async saveProduct(product) {
         if (product.id && !isNaN(product.id)) {

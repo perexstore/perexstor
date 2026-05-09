@@ -479,6 +479,11 @@ function addToCart(id) {
     const p = products.find(prod => prod.id === id);
     if (!p) return;
     
+    if (p.has_colors || p.has_sizes) {
+        window.location.href = `landing.html?id=${id}`;
+        return;
+    }
+    
     const existing = cartItems.find(item => item.id === id);
     if (existing) {
         existing.qty++;

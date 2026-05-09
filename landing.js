@@ -7,6 +7,8 @@ const CACHE_TTL = 300000; // 5 minutes in ms
 // State
 let appliedCoupon = null;
 let currentProductPrice = 0; // Stored globally so updateLandingTotal works without args
+let currentProduct = null;
+let landingVariantRows = [];
 
 function generateStarRating(rating) {
     let stars = '';
@@ -238,6 +240,9 @@ function loadProduct() {
         if (window.fbq) fbq('track', 'ViewContent', { content_ids: [p.id], content_name: p.name, value: p.price, currency: 'EGP' });
     }
 
+    currentProduct = p;
+    landingVariantRows = [{ id: Date.now(), color: '', size: '', qty: 1 }];
+
     const container = document.getElementById('landing-content');
     container.innerHTML = `
         <div class="product-gallery">
@@ -269,6 +274,7 @@ function loadProduct() {
 
             <div class="landing-checkout">
                 <h3 style="margin-bottom:20px;">اطلب الآن وسيتصل بك فريقنا</h3>
+                <div id="variants-container" style="margin-bottom: 20px;"></div>
                 <form id="landing-form" onsubmit="submitLandingOrder(event, ${p.id})">
                     <div class="form-group"><input type="text" id="l-name" placeholder="الاسم بالكامل" required class="review-input" style="margin-bottom:10px;"></div>
                     <div class="form-group"><input type="tel" id="l-phone" placeholder="رقم الهاتف" required class="review-input" style="margin-bottom:10px;" pattern="01[0-2,5]{1}[0-9]{8}"></div>
@@ -291,7 +297,7 @@ function loadProduct() {
                     <div class="form-group"><textarea id="l-address" placeholder="العنوان بالتفصيل (الشارع، رقم العمارة، إلخ)" required class="review-input" style="margin-bottom:15px;"></textarea></div>
                     
                     <div class="checkout-summary" style="background:rgba(0,0,0,0.2);padding:15px;border-radius:10px;margin-bottom:15px;">
-                        <div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span>سعر المنتج:</span> <span>${p.price} ج.م</span></div>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span>سعر المنتج:</span> <span>${p.price} ج.م <span id="l-qty-display"></span></span></div>
                         <div id="l-discount-row" style="display:none;justify-content:space-between;margin-bottom:5px;color:#ef4444;"><span>الخصم:</span> <span id="l-discount-val">0 ج.م</span></div>
                         <div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span>الشحن:</span> <span id="l-ship-val">0 ج.م</span></div>
                         <div style="display:flex;justify-content:space-between;border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;font-weight:bold;font-size:1.2rem;">
@@ -305,6 +311,101 @@ function loadProduct() {
             </div>
         </div>
     `;
+
+    if (p.has_colors || p.has_sizes) {
+        renderLandingVariants();
+    } else {
+        // Just one quantity selector if no variants? 
+        // For simplicity, let's just use the existing logic (qty=1) if no variants, 
+        // or we can add a basic qty selector. Let's just use total logic.
+        updateLandingTotal();
+    }
+}
+
+function renderLandingVariants() {
+    const container = document.getElementById('variants-container');
+    if (!container || !currentProduct) return;
+    
+    const p = currentProduct;
+    let html = '';
+    
+    landingVariantRows.forEach((row, index) => {
+        html += `
+            <div style="background:rgba(255,255,255,0.02); border:1px solid var(--bo); padding:10px; border-radius:10px; margin-bottom:10px; display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+        `;
+        
+        if (p.has_colors && p.colors && p.colors.length > 0) {
+            html += `
+                <div style="flex:1; min-width:100px;">
+                    <select class="review-input" style="padding:8px;" onchange="updateVariantRow(${row.id}, 'color', this.value)" required>
+                        <option value="" disabled ${!row.color ? 'selected' : ''}>اللون...</option>
+                        ${p.colors.map(c => `<option value="${c}" ${row.color === c ? 'selected' : ''}>${c}</option>`).join('')}
+                    </select>
+                </div>
+            `;
+        }
+        
+        if (p.has_sizes && p.sizes && p.sizes.length > 0) {
+            html += `
+                <div style="flex:1; min-width:100px;">
+                    <select class="review-input" style="padding:8px;" onchange="updateVariantRow(${row.id}, 'size', this.value)" required>
+                        <option value="" disabled ${!row.size ? 'selected' : ''}>المقاس...</option>
+                        ${p.sizes.map(s => `<option value="${s}" ${row.size === s ? 'selected' : ''}>${s}</option>`).join('')}
+                    </select>
+                </div>
+            `;
+        }
+        
+        html += `
+                <div style="display:flex; align-items:center; gap:10px; background:rgba(0,0,0,0.2); border-radius:8px; padding:5px 10px;">
+                    <button type="button" onclick="updateVariantRow(${row.id}, 'qty', ${row.qty - 1})" style="background:none;border:none;color:var(--text-color);cursor:pointer;"><i class="fa-solid fa-minus"></i></button>
+                    <span style="min-width:20px;text-align:center;">${row.qty}</span>
+                    <button type="button" onclick="updateVariantRow(${row.id}, 'qty', ${row.qty + 1})" style="background:none;border:none;color:var(--text-color);cursor:pointer;"><i class="fa-solid fa-plus"></i></button>
+                </div>
+        `;
+        
+        if (landingVariantRows.length > 1) {
+            html += `
+                <button type="button" class="btn btn-danger" style="padding:5px 10px; border-radius:8px;" onclick="removeVariantRow(${row.id})"><i class="fa-solid fa-trash"></i></button>
+            `;
+        }
+        
+        html += `</div>`;
+    });
+    
+    html += `
+        <button type="button" class="btn btn-secondary" style="width:100%; padding:8px; border-radius:10px; margin-bottom:15px; font-size:0.9rem;" onclick="addVariantRow()">
+            <i class="fa-solid fa-plus"></i> إضافة صنف آخر (لون/مقاس مختلف)
+        </button>
+    `;
+    
+    container.innerHTML = html;
+    updateLandingTotal();
+}
+
+function updateVariantRow(id, field, value) {
+    const row = landingVariantRows.find(r => r.id === id);
+    if (!row) return;
+    
+    if (field === 'qty') {
+        if (value < 1) return;
+        row.qty = value;
+    } else {
+        row[field] = value;
+    }
+    
+    renderLandingVariants();
+}
+
+function addVariantRow() {
+    landingVariantRows.push({ id: Date.now(), color: '', size: '', qty: 1 });
+    renderLandingVariants();
+}
+
+function removeVariantRow(id) {
+    if (landingVariantRows.length <= 1) return;
+    landingVariantRows = landingVariantRows.filter(r => r.id !== id);
+    renderLandingVariants();
 }
 
 function applyLandingCoupon(basePrice) {
@@ -382,22 +483,35 @@ function updateLandingTotal(basePrice) {
     // Use passed price, or fall back to the globally stored product price
     const price = basePrice || currentProductPrice;
     if (!price) return;
+    
+    // Calculate total qty
+    let totalQty = 1;
+    if (currentProduct && (currentProduct.has_colors || currentProduct.has_sizes)) {
+        totalQty = landingVariantRows.reduce((sum, r) => sum + r.qty, 0);
+    }
+    
+    const subtotal = price * totalQty;
+    
+    const qtyDisplay = document.getElementById('l-qty-display');
+    if (qtyDisplay) {
+        qtyDisplay.innerText = totalQty > 1 ? `(الكمية: ${totalQty})` : '';
+    }
 
     const govEl = document.getElementById('l-gov');
     const originalShip = govEl ? (parseFloat(govEl.value) || 0) : 0;
 
-    // Discount calculation
+    // Discount calculation (apply to subtotal)
     const discount = appliedCoupon
         ? (appliedCoupon.type === 'fixed'
-            ? Math.min(appliedCoupon.discount, price)
-            : Math.round(price * (appliedCoupon.discount / 100)))
+            ? Math.min(appliedCoupon.discount, subtotal)
+            : Math.round(subtotal * (appliedCoupon.discount / 100)))
         : 0;
 
     // Free shipping check
     const freeShipping = appliedCoupon && appliedCoupon.free_shipping;
     const ship = freeShipping ? 0 : originalShip;
 
-    const total = price - discount + ship;
+    const total = subtotal - discount + ship;
 
     // Update shipping display
     const shipEl = document.getElementById('l-ship-val');
@@ -438,13 +552,39 @@ async function submitLandingOrder(e, productId) {
     const govSelect = document.getElementById('l-gov');
     
     const originalShip = parseFloat(govSelect.value) || 0;
-    const discount = appliedCoupon ? (appliedCoupon.type === 'fixed' ? appliedCoupon.discount : Math.round(p.price * (appliedCoupon.discount / 100))) : 0;
+    
+    let totalQty = 1;
+    let orderItems = [];
+    
+    if (p.has_colors || p.has_sizes) {
+        totalQty = landingVariantRows.reduce((sum, r) => sum + r.qty, 0);
+        
+        orderItems = landingVariantRows.map(r => {
+            let variantSuffix = [];
+            if (p.has_colors && r.color) variantSuffix.push(r.color);
+            if (p.has_sizes && r.size) variantSuffix.push(r.size);
+            
+            const variantText = variantSuffix.length > 0 ? ` (${variantSuffix.join(' - ')})` : '';
+            return {
+                id: p.id,
+                name: p.name + variantText,
+                price: p.price,
+                qty: r.qty
+            };
+        });
+    } else {
+        orderItems = [{ id: p.id, name: p.name, price: p.price, qty: 1 }];
+    }
+    
+    const subtotal = p.price * totalQty;
+    
+    const discount = appliedCoupon ? (appliedCoupon.type === 'fixed' ? appliedCoupon.discount : Math.round(subtotal * (appliedCoupon.discount / 100))) : 0;
     
     // Free shipping check
     const freeShipping = appliedCoupon && appliedCoupon.free_shipping;
     const ship = freeShipping ? 0 : originalShip;
     
-    const total = p.price - discount + ship;
+    const total = subtotal - discount + ship;
 
     const orderData = {
         customer_name: document.getElementById('l-name').value,
@@ -453,8 +593,8 @@ async function submitLandingOrder(e, productId) {
         district: document.getElementById('l-district').value,
         address: document.getElementById('l-address').value,
         
-        items: [{ id: p.id, name: p.name, price: p.price, qty: 1 }],
-        subtotal: p.price,
+        items: orderItems,
+        subtotal: subtotal,
         shipping: ship,
         discount: discount,
         coupon: appliedCoupon ? appliedCoupon.code : null,
