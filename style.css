@@ -34,6 +34,8 @@ body {
     color: var(--text-color);
     line-height: 1.6;
     overflow-x: hidden;
+    width: 100%;
+    position: relative;
 }
 
 .container {
@@ -66,8 +68,7 @@ img {
 
 @media (min-width: 769px) {
     .glass-effect {
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
+        background: rgba(15, 23, 42, 0.85);
     }
 }
 
@@ -157,9 +158,7 @@ label {
 
 @media (min-width: 769px) {
     .header.scrolled {
-        background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
+        background: rgba(0, 0, 0, 0.8);
     }
 }
 
@@ -257,6 +256,8 @@ label {
     font-size: 1.5rem;
     cursor: pointer;
     color: var(--text-color);
+    z-index: 10002;
+    position: relative;
 }
 
 /* ===== Hero Section ===== */
@@ -339,8 +340,7 @@ label {
     position: absolute;
     bottom: -20px;
     right: -20px;
-    background: rgba(0,0,0,0.4);
-    backdrop-filter: blur(15px);
+    background: rgba(0,0,0,0.6);
     border: 1px solid var(--border-color);
     padding: 15px 25px;
     border-radius: 15px;
@@ -984,8 +984,7 @@ label {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(5px);
+    background: rgba(0, 0, 0, 0.8);
     z-index: 2001;
     display: none;
     opacity: 0;
@@ -1080,12 +1079,9 @@ label {
 
 /* ===== Full Width Slider ===== */
 .full-width-slider {
-    width: 100vw;
-    margin-left: calc(-50vw + 50%);
-    margin-right: calc(-50vw + 50%);
+    width: 100%;
     position: relative;
-    left: 50%;
-    right: 50%;
+    overflow: hidden;
 }
 
 .slider-wrapper.dragging {
@@ -1173,32 +1169,99 @@ label {
     .nav-links {
         position: fixed;
         top: 0;
-        right: -100%;
-        width: 280px;
+        right: -320px;
+        width: 300px;
         height: 100vh;
-        background: var(--dark-bg);
+        background: var(--card-bg);
         border-left: 1px solid var(--border-color);
         flex-direction: column;
-        padding: 80px 30px;
-        gap: 20px;
+        padding: 100px 25px;
+        gap: 10px;
         text-align: right;
-        transition: right 0.4s ease;
-        z-index: 1001;
-        box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+        transition: right 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 10001;
+        box-shadow: -15px 0 40px rgba(0,0,0,0.6);
+        pointer-events: auto;
+        visibility: hidden;
     }
     
     .nav-links.active {
         right: 0;
+        visibility: visible;
     }
     
     .nav-links li {
         width: 100%;
+        opacity: 0;
+        transform: translateX(20px);
+        transition: all 0.3s ease;
+    }
+
+    .nav-links.active li {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    /* Staggered animation for links */
+    .nav-links.active li:nth-child(1) { transition-delay: 0.1s; }
+    .nav-links.active li:nth-child(2) { transition-delay: 0.2s; }
+    .nav-links.active li:nth-child(3) { transition-delay: 0.3s; }
+    .nav-links.active li:nth-child(4) { transition-delay: 0.4s; }
+    
+    .menu-branding {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0 10px 30px;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 25px;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+
+    .menu-branding img {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        border: 2px solid var(--primary-color);
+    }
+
+    .menu-branding span {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: var(--text-color);
+    }
+
+    .nav-links a {
+        display: flex;
+        align-items: center;
+        padding: 15px 20px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 15px;
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.05);
+        margin-bottom: 5px;
+        transition: var(--tr);
+    }
+
+    .nav-links a i {
+        font-size: 1.2rem;
+        width: 25px;
+        text-align: center;
+        margin-left: 10px;
+        color: var(--primary-color);
     }
     
-    .nav-links a {
-        display: block;
-        font-size: 1.2rem;
-        padding: 10px 0;
+    .nav-links a.active i, .nav-links a:hover i {
+        color: #fff;
+    }
+
+    .nav-links a.active, .nav-links a:hover {
+        background: var(--primary-gradient);
+        color: #fff !important;
+        border-color: transparent;
+        box-shadow: 0 4px 15px rgba(14, 165, 233, 0.2);
     }
 
     .hero-content h1 {
@@ -1268,8 +1331,8 @@ label {
 .menu-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10000;
     display: none;
     opacity: 0;
     transition: opacity 0.4s ease;
