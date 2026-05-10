@@ -274,7 +274,7 @@ function applySettings() {
         document.querySelectorAll('.logo span').forEach(s => s.innerText = settings.store.name);
     }
     if (settings.store.logo) {
-        document.querySelectorAll('.logo img').forEach(img => img.src = settings.store.logo);
+        document.querySelectorAll('.logo img, .menu-branding img').forEach(img => img.src = settings.store.logo);
     }
 
     renderFeatures();

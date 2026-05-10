@@ -220,6 +220,14 @@ function applySettings() {
     if (settings.store && settings.store.pixel) {
         initPixel(settings.store.pixel);
     }
+
+    // Store Identity
+    if (settings.store.name) {
+        document.querySelectorAll('.logo span').forEach(s => s.innerText = settings.store.name);
+    }
+    if (settings.store.logo) {
+        document.querySelectorAll('.logo img').forEach(img => img.src = settings.store.logo);
+    }
 }
 
 function loadProduct() {
