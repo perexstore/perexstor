@@ -200,16 +200,16 @@ function applySettings() {
         .nav-links a { color: ${colors.text} !important; }
         .nav-icons, .cart-icon, .menu-toggle { color: ${colors.text} !important; }
         .hero { background-color: ${colors.bg} !important; }
-        .features { background-color: ${colors.card} !important; }
+        .features { background-color: ${colors.bg} !important; }
         .products { background-color: ${colors.bg} !important; }
-        .reviews { background-color: ${colors.card} !important; }
-        .footer { background-color: ${colors.bg} !important; border-top-color: ${colors.border} !important; }
+        .reviews { background-color: ${colors.bg} !important; }
+        .footer { background-color: ${colors.bg} !important; }
         .footer-col p, .footer-col ul li a, .footer-bottom, .contact-info ul li, .social-links a { color: ${colors.muted} !important; }
         .footer-col h3, .footer h3, .footer-about p { color: ${colors.text} !important; }
         .product-card { background-color: ${colors.card} !important; border-color: ${colors.border} !important; }
         .product-title { color: ${colors.text} !important; }
         .product-desc, .product-category { color: ${colors.muted} !important; }
-        .feature-card { background-color: ${colors.bg} !important; border-color: ${colors.border} !important; }
+        .feature-card { background-color: ${colors.card} !important; border-color: ${colors.border} !important; }
         .feature-card h3 { color: ${colors.text} !important; }
         .feature-card p { color: ${colors.muted} !important; }
         .section-title h2 { color: ${colors.text} !important; }

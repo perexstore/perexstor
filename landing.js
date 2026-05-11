@@ -195,7 +195,6 @@ function applySettings() {
         }
         .landing-footer {
             background-color: ${colors.bg} !important;
-            border-top-color: ${colors.border} !important;
             color: ${colors.muted} !important;
         }
         label { color: ${colors.text} !important; }
