@@ -160,18 +160,21 @@ function applySettings() {
             --text-muted: ${colors.muted};
             --border-color: ${colors.border};
             --glass-border: ${colors.border};
+            --preloader-bg: ${colors.bg};
+            --loader-bar-bg: ${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'};
         }
         html, body {
             background-color: ${colors.bg} !important;
             color: ${colors.text} !important;
         }
-        .landing-header, .landing-nav {
+        .header, .landing-nav {
             background-color: ${isLight ? '#ffffff' : 'rgba(0,0,0,0.5)'} !important;
-            color: ${colors.text} !important;
+            color: ${isLight ? '#0f172a' : colors.text} !important;
             border-bottom: 1px solid ${isLight ? '#f1f5f9' : 'transparent'} !important;
         }
-        .landing-header a, .landing-header span, .landing-header h1, .landing-header p {
-            color: ${colors.text} !important;
+        .header a, .header span, .header i, .header .btn-secondary {
+            color: ${isLight ? '#0f172a' : colors.text} !important;
+            border-color: ${isLight ? '#0f172a' : colors.primary} !important;
         }
         .product-section, .main-section {
             background-color: ${colors.bg} !important;
@@ -212,6 +215,8 @@ function applySettings() {
     root.style.setProperty('--text-muted', colors.muted);
     root.style.setProperty('--border-color', colors.border);
     root.style.setProperty('--glass-border', colors.border);
+    root.style.setProperty('--preloader-bg', colors.bg);
+    root.style.setProperty('--loader-bar-bg', isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)');
     document.body.style.backgroundColor = colors.bg;
     document.body.style.color = colors.text;
 

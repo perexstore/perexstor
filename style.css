@@ -875,7 +875,6 @@ label {
     height: 100vh;
     background: var(--dark-bg);
     z-index: 1002;
-    box-shadow: 5px 0 15px rgba(0,0,0,0.5);
     display: flex;
     flex-direction: column;
     transition: left 0.4s ease;
@@ -883,6 +882,7 @@ label {
 
 .cart-sidebar.active {
     left: 0;
+    box-shadow: 5px 0 15px rgba(0,0,0,0.5);
 }
 
 .cart-header {
@@ -1176,14 +1176,12 @@ label {
         width: 80%;
         height: 100vh;
         background: var(--card-bg) !important;
-        border-left: 1px solid var(--border-color);
         flex-direction: column;
         padding: 80px 25px;
         gap: 10px;
         text-align: right;
         transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         z-index: 99999;
-        box-shadow: -15px 0 40px rgba(0,0,0,0.6);
         pointer-events: none;
         visibility: hidden;
         overflow-y: auto;
@@ -1194,6 +1192,8 @@ label {
         right: 0;
         visibility: visible;
         pointer-events: auto;
+        border-left: 1px solid var(--border-color);
+        box-shadow: -15px 0 40px rgba(0,0,0,0.6);
     }
     
     .nav-links li {

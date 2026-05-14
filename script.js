@@ -189,13 +189,15 @@ function applySettings() {
             --text-muted: ${colors.muted};
             --border-color: ${colors.border};
             --glass-border: ${colors.border};
+            --preloader-bg: ${colors.bg};
+            --loader-bar-bg: ${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'};
         }
         html, body {
             background-color: ${colors.bg} !important;
             color: ${colors.text} !important;
         }
         .header { background-color: transparent; }
-        .header.scrolled { background: ${isLight ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.6)'} !important; }
+        .header.scrolled { background: ${isLight ? '#ffffff' : 'rgba(0,0,0,0.6)'} !important; }
         .logo, .logo span { color: ${colors.text} !important; }
         .nav-links a { color: ${colors.text} !important; }
         .nav-icons, .cart-icon, .menu-toggle { color: ${colors.text} !important; }
@@ -244,6 +246,8 @@ function applySettings() {
     root.style.setProperty('--text-muted', colors.muted);
     root.style.setProperty('--border-color', colors.border);
     root.style.setProperty('--glass-border', colors.border);
+    root.style.setProperty('--preloader-bg', colors.bg);
+    root.style.setProperty('--loader-bar-bg', isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)');
     document.body.style.backgroundColor = colors.bg;
     document.body.style.color = colors.text;
 
