@@ -214,9 +214,12 @@ function applySettings() {
         .feature-card p { color: ${colors.muted} !important; }
         .section-title h2 { color: ${colors.text} !important; }
         .section-title p { color: ${colors.muted} !important; }
-        .glass-card { color: ${colors.text} !important; background: rgba(0,0,0,0.4) !important; border-color: ${colors.border} !important; }
-        .review-item { background: ${isLight ? '#ffffff' : 'rgba(255,255,255,0.04)'} !important; border: 1px solid ${isLight ? colors.border : 'transparent'} !important; }
-        .review-item p { color: ${colors.text} !important; }
+        .glass-card, .glass-card span, .glass-card i { color: #ffffff !important; }
+        .product-badge { color: #ffffff !important; }
+        .reviews-content h2, .reviews-content p { color: #ffffff !important; }
+        .review-card { background: ${isLight ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)'} !important; border: 1px solid ${isLight ? 'rgba(255,255,255,0.1)' : 'transparent'} !important; }
+        .review-card p, .review-card strong, .review-card small { color: #ffffff !important; }
+        .review-card div[style*="background"] p, .review-card div[style*="background"] strong { color: #ffffff !important; }
         .review-input { background: ${isLight ? '#ffffff' : 'rgba(0,0,0,0.3)'} !important; color: ${colors.text} !important; border: 1px solid ${isLight ? '#cbd5e1' : colors.border} !important; }
         .filter-btn { color: ${colors.text} !important; border-color: ${colors.border} !important; }
         .add-to-cart-btn { color: ${colors.text} !important; }
