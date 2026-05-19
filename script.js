@@ -843,41 +843,47 @@ function sendWhatsApp(o) {
 
 // ===== UI HELPERS =====
 function initUI() {
-    document.getElementById('cart-icon').onclick = openCart;
-    document.getElementById('close-cart').onclick = closeCart;
-    document.getElementById('cart-overlay').onclick = closeCart;
-    document.getElementById('close-checkout').onclick = closeCheckout;
-    document.getElementById('checkout-overlay').onclick = closeCheckout;
+    document.getElementById('cart-icon').addEventListener('click', openCart);
+    document.getElementById('close-cart').addEventListener('click', closeCart);
+    document.getElementById('cart-overlay').addEventListener('click', closeCart);
+    document.getElementById('close-checkout').addEventListener('click', closeCheckout);
+    document.getElementById('checkout-overlay').addEventListener('click', closeCheckout);
 
     // Mobile Menu
     const toggle = document.getElementById('menu-toggle');
     const nav = document.querySelector('.nav-links');
     const menuOverlay = document.getElementById('menu-overlay');
 
-    const toggleMenu = () => {
-        nav.classList.toggle('active');
-        menuOverlay.classList.toggle('active');
-        document.body.style.overflow = nav.classList.contains('active') ? 'hidden' : '';
-        toggle.querySelector('i').classList.toggle('fa-bars');
-        toggle.querySelector('i').classList.toggle('fa-xmark');
-    };
-
-    toggle.onclick = toggleMenu;
-    menuOverlay.onclick = toggleMenu;
-    
-    // Close menu when clicking a link
-    nav.querySelectorAll('a').forEach(link => {
-        link.onclick = () => {
-            if (nav.classList.contains('active')) toggleMenu();
+    if (toggle && nav && menuOverlay) {
+        const toggleMenu = (e) => {
+            if (e) e.stopPropagation();
+            nav.classList.toggle('active');
+            menuOverlay.classList.toggle('active');
+            document.body.style.overflow = nav.classList.contains('active') ? 'hidden' : '';
+            const icon = toggle.querySelector('i');
+            if (icon) {
+                icon.classList.toggle('fa-bars');
+                icon.classList.toggle('fa-xmark');
+            }
         };
-    });
+
+        toggle.addEventListener('click', toggleMenu);
+        menuOverlay.addEventListener('click', toggleMenu);
+        
+        // Close menu when clicking a link
+        nav.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (nav.classList.contains('active')) toggleMenu();
+            });
+        });
+    }
 
     // Header Scroll
-    window.onscroll = () => {
+    window.addEventListener('scroll', () => {
         const header = document.getElementById('header');
         if (window.scrollY > 50) header.classList.add('scrolled');
         else header.classList.remove('scrolled');
-    };
+    }, { passive: true });
 
     renderReviews();
 }

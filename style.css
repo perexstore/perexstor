@@ -891,7 +891,7 @@ label {
 .cart-sidebar {
     position: fixed;
     top: 0;
-    left: -400px; /* من اليسار في المواقع العربية (RTL) يكون أفضل أو يمين حسب التفضيل، سنجعلها يسار لتكون عكس السكرولبار */
+    right: 0;
     width: 100%;
     max-width: 400px;
     height: 100vh;
@@ -899,12 +899,15 @@ label {
     z-index: 1002;
     display: flex;
     flex-direction: column;
-    transition: left 0.4s ease;
+    transform: translateX(100%);
+    transition: transform 0.4s ease;
+    visibility: hidden;
 }
 
 .cart-sidebar.active {
-    left: 0;
-    box-shadow: 5px 0 15px rgba(0,0,0,0.05);
+    transform: translateX(0);
+    visibility: visible;
+    box-shadow: -5px 0 15px rgba(0,0,0,0.15);
 }
 
 .cart-header {
@@ -1332,6 +1335,7 @@ label {
 
     .cart-sidebar {
         max-width: 100%;
+        width: 100%;
     }
 }
 
