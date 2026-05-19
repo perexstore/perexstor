@@ -140,9 +140,7 @@ function applySettings() {
             primary: "#fbbf24", secondary: "#f59e0b", bg: "#1e1b4b", card: "#312e81", 
             text: "#fffbeb", muted: "#fde68a", border: "rgba(251,191,36,0.15)" 
         }
-    };
-
-    const currentTheme = settings.theme || 'dark';
+    };    const currentTheme = settings.theme || 'dark';
     const colors = THEMES[currentTheme] || THEMES.dark;
     const isLight = currentTheme === 'light' || currentTheme === 'light_premium';
     const gradient = `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`;
@@ -162,10 +160,6 @@ function applySettings() {
             --glass-border: ${colors.border};
             --preloader-bg: ${colors.bg};
             --loader-bar-bg: ${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'};
-        }
-        html, body {
-            background-color: ${colors.bg} !important;
-            color: ${colors.text} !important;
         }
         .header, .landing-nav {
             background-color: ${isLight ? '#ffffff' : 'rgba(0,0,0,0.5)'} !important;
@@ -191,7 +185,7 @@ function applySettings() {
             background-color: ${colors.card} !important;
             border-color: ${colors.border} !important;
         }
-        .form-input, .form-select, input, select, textarea {
+        .form-input, .form-select, input, select, textarea, .review-input {
             background-color: ${isLight ? '#ffffff' : 'rgba(0,0,0,0.3)'} !important;
             color: ${colors.text} !important;
             border: 1px solid ${isLight ? '#cbd5e1' : colors.border} !important;
@@ -200,7 +194,6 @@ function applySettings() {
             background-color: ${colors.bg} !important;
             color: ${colors.muted} !important;
         }
-        label { color: ${colors.text} !important; }
     `;
 
     // Set directly on root for immediate effect
@@ -308,7 +301,7 @@ function loadProduct() {
                     <div class="form-group"><input type="text" id="l-district" placeholder="المنطقة / الحي" required class="review-input" style="margin-bottom:10px;"></div>
                     <div class="form-group"><textarea id="l-address" placeholder="العنوان بالتفصيل (الشارع، رقم العمارة، إلخ)" required class="review-input" style="margin-bottom:15px;"></textarea></div>
                     
-                    <div class="checkout-summary" style="background:rgba(0,0,0,0.2);padding:15px;border-radius:10px;margin-bottom:15px;">
+                    <div class="checkout-summary" style="padding:15px;border-radius:10px;margin-bottom:15px;">
                         <div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span>سعر المنتج:</span> <span>${p.price} ج.م <span id="l-qty-display"></span></span></div>
                         <div id="l-discount-row" style="display:none;justify-content:space-between;margin-bottom:5px;color:#ef4444;"><span>الخصم:</span> <span id="l-discount-val">0 ج.م</span></div>
                         <div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span>الشحن:</span> <span id="l-ship-val">0 ج.م</span></div>
@@ -379,7 +372,7 @@ function renderLandingVariants() {
         html += `
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
                     <span style="font-weight:bold;">الكمية:</span>
-                    <div style="display:flex; align-items:center; gap:15px; background:rgba(0,0,0,0.3); border-radius:10px; padding:8px 15px; border: 1px solid var(--border-color);">
+                    <div class="landing-qty-controls" style="display:flex; align-items:center; gap:15px; border-radius:10px; padding:8px 15px;">
                         <button type="button" onclick="updateVariantRow(${row.id}, 'qty', ${row.qty + 1})" style="background:none;border:none;color:var(--primary-color);cursor:pointer;font-size:1.1rem;"><i class="fa-solid fa-plus"></i></button>
                         <span style="min-width:30px;text-align:center;font-weight:bold;font-size:1.1rem;">${row.qty}</span>
                         <button type="button" onclick="updateVariantRow(${row.id}, 'qty', ${row.qty - 1})" style="background:none;border:none;color:var(--primary-color);cursor:pointer;font-size:1.1rem;"><i class="fa-solid fa-minus"></i></button>

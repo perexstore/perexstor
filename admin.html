@@ -73,6 +73,9 @@
       <button class="nav-item" data-tab="landing" onclick="switchTab('landing',this)">
         <i class="fa-solid fa-rocket"></i> صفحات الهبوط
       </button>
+      <button class="nav-item" data-tab="offers" onclick="switchTab('offers',this)">
+        <i class="fa-solid fa-bullhorn"></i> العروض الذكية
+      </button>
 
       <div class="nav-section-title">الإعدادات</div>
       <button class="nav-item" data-tab="floating" onclick="switchTab('floating',this)">
@@ -352,6 +355,140 @@
           </div>
         </div>
         <div id="landing-pages-list" style="display:flex;flex-direction:column;gap:12px;"></div>
+      </section>
+
+      <!-- ===== SMART OFFERS ===== -->
+      <section class="tab-section" id="tab-offers">
+        <div class="page-header">
+          <h2><i class="fa-solid fa-bullhorn"></i> العروض الذكية</h2>
+        </div>
+        <p style="color:var(--mu); margin-bottom:20px; font-size:0.9rem;">يمكنك إعداد عروض تظهر للعملاء بناءً على سلوكهم. جميع الإعدادات يتم حفظها تلقائياً عند الضغط على "حفظ".</p>
+
+        <!-- Welcome Popup -->
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+            <h3><i class="fa-solid fa-hand-sparkles"></i> عرض الترحيب</h3>
+            <div class="toggle-wrap">
+              <label class="toggle"><input type="checkbox" id="offer-welcome-enabled"><span class="toggle-slider"></span></label>
+              <span style="font-size:0.85rem;">مُفعَّل</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group form-full"><label>العنوان</label><input type="text" class="form-control" id="offer-welcome-title" placeholder="مرحباً بك! 🎉"></div>
+              <div class="form-group form-full"><label>الوصف</label><textarea class="form-control" id="offer-welcome-desc" rows="2" placeholder="احصل على خصم 10% على أول طلب"></textarea></div>
+              <div class="form-group"><label>نص الزر</label><input type="text" class="form-control" id="offer-welcome-btnText" placeholder="تسوق الآن"></div>
+              <div class="form-group"><label>رابط الزر</label><input type="text" class="form-control" id="offer-welcome-btnLink" placeholder="#products"></div>
+              <div class="form-group"><label>كود الخصم (اختياري)</label><input type="text" class="form-control" id="offer-welcome-coupon" placeholder="WELCOME10"></div>
+              <div class="form-group">
+                <label>الأيقونة <i id="offer-welcome-icon-preview" class="fa-solid fa-gift" style="margin-right:8px;color:var(--pr);"></i></label>
+                <div style="display:flex;gap:5px;">
+                  <input type="text" class="form-control" id="offer-welcome-icon" placeholder="fa-gift" value="fa-gift" oninput="document.getElementById('offer-welcome-icon-preview').className='fa-solid '+this.value">
+                  <button class="btn btn-ghost btn-sm" onclick="openIconPicker('offer-welcome-icon','solid')"><i class="fa-solid fa-eye"></i></button>
+                </div>
+              </div>
+              <div class="form-group"><label>لون الخلفية</label><input type="color" class="form-control" id="offer-welcome-bgColor" value="#0ea5e9" style="height:42px;padding:2px;"></div>
+              <div class="form-group"><label>لون النص</label><input type="color" class="form-control" id="offer-welcome-textColor" value="#ffffff" style="height:42px;padding:2px;"></div>
+              <div class="form-group"><label>التأخير (ثواني)</label><input type="number" class="form-control" id="offer-welcome-delay" value="5" min="1" max="120"></div>
+              <div class="form-group">
+                <label>الموضع</label>
+                <select class="form-control" id="offer-welcome-position">
+                  <option value="center">نافذة وسطية</option>
+                  <option value="top">شريط علوي</option>
+                  <option value="bottom">شريط سفلي</option>
+                </select>
+              </div>
+              <div class="form-group" style="display:flex;align-items:center;gap:10px;margin-top:20px;">
+                <label class="toggle"><input type="checkbox" id="offer-welcome-once" checked><span class="toggle-slider"></span></label>
+                <span>عرض مرة واحدة لكل جلسة</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Exit Intent -->
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+            <h3><i class="fa-solid fa-door-open"></i> عرض نية المغادرة</h3>
+            <div class="toggle-wrap">
+              <label class="toggle"><input type="checkbox" id="offer-exit-enabled"><span class="toggle-slider"></span></label>
+              <span style="font-size:0.85rem;">مُفعَّل</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group form-full"><label>العنوان</label><input type="text" class="form-control" id="offer-exit-title" placeholder="لا تفوت هذا العرض! 🔥"></div>
+              <div class="form-group form-full"><label>الوصف</label><textarea class="form-control" id="offer-exit-desc" rows="2" placeholder="شحن مجاني على طلبك الأول"></textarea></div>
+              <div class="form-group"><label>نص الزر</label><input type="text" class="form-control" id="offer-exit-btnText" placeholder="استفد الآن"></div>
+              <div class="form-group"><label>رابط الزر</label><input type="text" class="form-control" id="offer-exit-btnLink" placeholder="#products"></div>
+              <div class="form-group"><label>كود الخصم (اختياري)</label><input type="text" class="form-control" id="offer-exit-coupon" placeholder="STAY15"></div>
+              <div class="form-group">
+                <label>الأيقونة <i id="offer-exit-icon-preview" class="fa-solid fa-door-open" style="margin-right:8px;color:var(--pr);"></i></label>
+                <div style="display:flex;gap:5px;">
+                  <input type="text" class="form-control" id="offer-exit-icon" placeholder="fa-door-open" value="fa-door-open" oninput="document.getElementById('offer-exit-icon-preview').className='fa-solid '+this.value">
+                  <button class="btn btn-ghost btn-sm" onclick="openIconPicker('offer-exit-icon','solid')"><i class="fa-solid fa-eye"></i></button>
+                </div>
+              </div>
+              <div class="form-group"><label>لون الخلفية</label><input type="color" class="form-control" id="offer-exit-bgColor" value="#ef4444" style="height:42px;padding:2px;"></div>
+              <div class="form-group"><label>لون النص</label><input type="color" class="form-control" id="offer-exit-textColor" value="#ffffff" style="height:42px;padding:2px;"></div>
+              <div class="form-group">
+                <label>الموضع</label>
+                <select class="form-control" id="offer-exit-position">
+                  <option value="center">نافذة وسطية</option>
+                  <option value="top">شريط علوي</option>
+                  <option value="bottom">شريط سفلي</option>
+                </select>
+              </div>
+              <div class="form-group" style="display:flex;align-items:center;gap:10px;margin-top:20px;">
+                <label class="toggle"><input type="checkbox" id="offer-exit-once" checked><span class="toggle-slider"></span></label>
+                <span>عرض مرة واحدة لكل جلسة</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cart Abandonment -->
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+            <h3><i class="fa-solid fa-cart-arrow-down"></i> تذكير السلة المتروكة</h3>
+            <div class="toggle-wrap">
+              <label class="toggle"><input type="checkbox" id="offer-cart-enabled"><span class="toggle-slider"></span></label>
+              <span style="font-size:0.85rem;">مُفعَّل</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group form-full"><label>العنوان</label><input type="text" class="form-control" id="offer-cart-title" placeholder="نسيت شيئاً في السلة؟ 🛒"></div>
+              <div class="form-group form-full"><label>الوصف</label><textarea class="form-control" id="offer-cart-desc" rows="2" placeholder="أكمل طلبك الآن واحصل على عرض خاص!"></textarea></div>
+              <div class="form-group"><label>نص الزر</label><input type="text" class="form-control" id="offer-cart-btnText" placeholder="أكمل الطلب"></div>
+              <div class="form-group"><label>كود الخصم (اختياري)</label><input type="text" class="form-control" id="offer-cart-coupon" placeholder="CART5"></div>
+              <div class="form-group">
+                <label>الأيقونة <i id="offer-cart-icon-preview" class="fa-solid fa-cart-arrow-down" style="margin-right:8px;color:var(--pr);"></i></label>
+                <div style="display:flex;gap:5px;">
+                  <input type="text" class="form-control" id="offer-cart-icon" placeholder="fa-cart-arrow-down" value="fa-cart-arrow-down" oninput="document.getElementById('offer-cart-icon-preview').className='fa-solid '+this.value">
+                  <button class="btn btn-ghost btn-sm" onclick="openIconPicker('offer-cart-icon','solid')"><i class="fa-solid fa-eye"></i></button>
+                </div>
+              </div>
+              <div class="form-group"><label>لون الخلفية</label><input type="color" class="form-control" id="offer-cart-bgColor" value="#f59e0b" style="height:42px;padding:2px;"></div>
+              <div class="form-group"><label>لون النص</label><input type="color" class="form-control" id="offer-cart-textColor" value="#ffffff" style="height:42px;padding:2px;"></div>
+              <div class="form-group"><label>مدة الخمول (ثواني)</label><input type="number" class="form-control" id="offer-cart-delay" value="30" min="5" max="300"></div>
+              <div class="form-group">
+                <label>الموضع</label>
+                <select class="form-control" id="offer-cart-position">
+                  <option value="center">نافذة وسطية</option>
+                  <option value="top">شريط علوي</option>
+                  <option value="bottom" selected>شريط سفلي</option>
+                </select>
+              </div>
+              <div class="form-group" style="display:flex;align-items:center;gap:10px;margin-top:20px;">
+                <label class="toggle"><input type="checkbox" id="offer-cart-once" checked><span class="toggle-slider"></span></label>
+                <span>عرض مرة واحدة لكل جلسة</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="saveOfferSettings()"><i class="fa-solid fa-save"></i> حفظ إعدادات العروض</button>
       </section>
 
       <!-- ===== SETTINGS ===== -->

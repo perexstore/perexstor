@@ -293,6 +293,7 @@ function renderAll() {
     renderSocialSettings();
     renderFloatingBtns();
     renderAllThemes();
+    renderOffersSettings();
     loadSettings();
 }
 
@@ -1546,6 +1547,137 @@ async function saveSettings() {
     };
 
     await saveAll();
+}
+
+// ===== SMART OFFERS SETTINGS =====
+function getOfferDefaults() {
+    return {
+        welcome: {
+            enabled: false, title: 'مرحباً بك! 🎉', desc: 'احصل على خصم 10% على أول طلب',
+            btnText: 'تسوق الآن', btnLink: '#products', coupon: '', icon: 'fa-gift',
+            bgColor: '#0ea5e9', textColor: '#ffffff', delay: 5, oncePerSession: true, position: 'center'
+        },
+        exitIntent: {
+            enabled: false, title: 'لا تفوت هذا العرض! 🔥', desc: 'شحن مجاني على طلبك الأول',
+            btnText: 'استفد الآن', btnLink: '#products', coupon: '', icon: 'fa-door-open',
+            bgColor: '#ef4444', textColor: '#ffffff', oncePerSession: true, position: 'center'
+        },
+        cartAbandonment: {
+            enabled: false, title: 'نسيت شيئاً في السلة؟ 🛒', desc: 'أكمل طلبك الآن واحصل على عرض خاص!',
+            btnText: 'أكمل الطلب', coupon: '', icon: 'fa-cart-arrow-down',
+            bgColor: '#f59e0b', textColor: '#ffffff', delay: 30, oncePerSession: true, position: 'bottom'
+        }
+    };
+}
+
+function renderOffersSettings() {
+    const offers = settings.offers || getOfferDefaults();
+    const w = offers.welcome || getOfferDefaults().welcome;
+    const e = offers.exitIntent || getOfferDefaults().exitIntent;
+    const c = offers.cartAbandonment || getOfferDefaults().cartAbandonment;
+
+    // Welcome
+    const wEl = (id) => document.getElementById('offer-welcome-' + id);
+    if (wEl('enabled')) wEl('enabled').checked = w.enabled || false;
+    if (wEl('title')) wEl('title').value = w.title || '';
+    if (wEl('desc')) wEl('desc').value = w.desc || '';
+    if (wEl('btnText')) wEl('btnText').value = w.btnText || '';
+    if (wEl('btnLink')) wEl('btnLink').value = w.btnLink || '';
+    if (wEl('coupon')) wEl('coupon').value = w.coupon || '';
+    if (wEl('icon')) { wEl('icon').value = w.icon || 'fa-gift'; }
+    if (document.getElementById('offer-welcome-icon-preview')) document.getElementById('offer-welcome-icon-preview').className = 'fa-solid ' + (w.icon || 'fa-gift');
+    if (wEl('bgColor')) wEl('bgColor').value = w.bgColor || '#0ea5e9';
+    if (wEl('textColor')) wEl('textColor').value = w.textColor || '#ffffff';
+    if (wEl('delay')) wEl('delay').value = w.delay || 5;
+    if (wEl('position')) wEl('position').value = w.position || 'center';
+    if (wEl('once')) wEl('once').checked = w.oncePerSession !== false;
+
+    // Exit Intent
+    const eEl = (id) => document.getElementById('offer-exit-' + id);
+    if (eEl('enabled')) eEl('enabled').checked = e.enabled || false;
+    if (eEl('title')) eEl('title').value = e.title || '';
+    if (eEl('desc')) eEl('desc').value = e.desc || '';
+    if (eEl('btnText')) eEl('btnText').value = e.btnText || '';
+    if (eEl('btnLink')) eEl('btnLink').value = e.btnLink || '';
+    if (eEl('coupon')) eEl('coupon').value = e.coupon || '';
+    if (eEl('icon')) { eEl('icon').value = e.icon || 'fa-door-open'; }
+    if (document.getElementById('offer-exit-icon-preview')) document.getElementById('offer-exit-icon-preview').className = 'fa-solid ' + (e.icon || 'fa-door-open');
+    if (eEl('bgColor')) eEl('bgColor').value = e.bgColor || '#ef4444';
+    if (eEl('textColor')) eEl('textColor').value = e.textColor || '#ffffff';
+    if (eEl('position')) eEl('position').value = e.position || 'center';
+    if (eEl('once')) eEl('once').checked = e.oncePerSession !== false;
+
+    // Cart Abandonment
+    const cEl = (id) => document.getElementById('offer-cart-' + id);
+    if (cEl('enabled')) cEl('enabled').checked = c.enabled || false;
+    if (cEl('title')) cEl('title').value = c.title || '';
+    if (cEl('desc')) cEl('desc').value = c.desc || '';
+    if (cEl('btnText')) cEl('btnText').value = c.btnText || '';
+    if (cEl('coupon')) cEl('coupon').value = c.coupon || '';
+    if (cEl('icon')) { cEl('icon').value = c.icon || 'fa-cart-arrow-down'; }
+    if (document.getElementById('offer-cart-icon-preview')) document.getElementById('offer-cart-icon-preview').className = 'fa-solid ' + (c.icon || 'fa-cart-arrow-down');
+    if (cEl('bgColor')) cEl('bgColor').value = c.bgColor || '#f59e0b';
+    if (cEl('textColor')) cEl('textColor').value = c.textColor || '#ffffff';
+    if (cEl('delay')) cEl('delay').value = c.delay || 30;
+    if (cEl('position')) cEl('position').value = c.position || 'bottom';
+    if (cEl('once')) cEl('once').checked = c.oncePerSession !== false;
+}
+
+async function saveOfferSettings() {
+    const gv = (id) => {
+        const el = document.getElementById(id);
+        return el ? el.value : '';
+    };
+    const gc = (id) => {
+        const el = document.getElementById(id);
+        return el ? el.checked : false;
+    };
+
+    settings.offers = {
+        welcome: {
+            enabled: gc('offer-welcome-enabled'),
+            title: gv('offer-welcome-title'),
+            desc: gv('offer-welcome-desc'),
+            btnText: gv('offer-welcome-btnText'),
+            btnLink: gv('offer-welcome-btnLink'),
+            coupon: gv('offer-welcome-coupon'),
+            icon: gv('offer-welcome-icon'),
+            bgColor: gv('offer-welcome-bgColor'),
+            textColor: gv('offer-welcome-textColor'),
+            delay: parseInt(gv('offer-welcome-delay')) || 5,
+            oncePerSession: gc('offer-welcome-once'),
+            position: gv('offer-welcome-position')
+        },
+        exitIntent: {
+            enabled: gc('offer-exit-enabled'),
+            title: gv('offer-exit-title'),
+            desc: gv('offer-exit-desc'),
+            btnText: gv('offer-exit-btnText'),
+            btnLink: gv('offer-exit-btnLink'),
+            coupon: gv('offer-exit-coupon'),
+            icon: gv('offer-exit-icon'),
+            bgColor: gv('offer-exit-bgColor'),
+            textColor: gv('offer-exit-textColor'),
+            oncePerSession: gc('offer-exit-once'),
+            position: gv('offer-exit-position')
+        },
+        cartAbandonment: {
+            enabled: gc('offer-cart-enabled'),
+            title: gv('offer-cart-title'),
+            desc: gv('offer-cart-desc'),
+            btnText: gv('offer-cart-btnText'),
+            coupon: gv('offer-cart-coupon'),
+            icon: gv('offer-cart-icon'),
+            bgColor: gv('offer-cart-bgColor'),
+            textColor: gv('offer-cart-textColor'),
+            delay: parseInt(gv('offer-cart-delay')) || 30,
+            oncePerSession: gc('offer-cart-once'),
+            position: gv('offer-cart-position')
+        }
+    };
+
+    await saveAll();
+    showToast('تم حفظ إعدادات العروض بنجاح');
 }
 
 // ===== UTILS =====

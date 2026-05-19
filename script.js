@@ -125,7 +125,10 @@ async function initData() {
         loadShippingSelects();
         
         const elapsed = Date.now() - startTime;
-        setTimeout(hidePreloader, Math.max(0, 300 - elapsed));
+        setTimeout(() => {
+            hidePreloader();
+            initSmartOffers();
+        }, Math.max(0, 300 - elapsed));
         
     } catch (e) {
         console.error('Store Init Error:', e);
@@ -192,30 +195,7 @@ function applySettings() {
             --preloader-bg: ${colors.bg};
             --loader-bar-bg: ${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'};
         }
-        html, body {
-            background-color: ${colors.bg} !important;
-            color: ${colors.text} !important;
-        }
-        .header { background-color: transparent; }
         .header.scrolled { background: ${isLight ? '#ffffff' : 'rgba(0,0,0,0.6)'} !important; }
-        .logo, .logo span { color: ${colors.text} !important; }
-        .nav-links a { color: ${colors.text} !important; }
-        .nav-icons, .cart-icon, .menu-toggle { color: ${colors.text} !important; }
-        .hero { background-color: ${colors.bg} !important; }
-        .features { background-color: ${colors.bg} !important; }
-        .products { background-color: ${colors.bg} !important; }
-        .reviews { background-color: ${colors.bg} !important; }
-        .footer { background-color: ${colors.bg} !important; }
-        .footer-col p, .footer-col ul li a, .footer-bottom, .contact-info ul li, .social-links a { color: ${colors.muted} !important; }
-        .footer-col h3, .footer h3, .footer-about p { color: ${colors.text} !important; }
-        .product-card { background-color: ${colors.card} !important; border-color: ${colors.border} !important; }
-        .product-title { color: ${colors.text} !important; }
-        .product-desc, .product-category { color: ${colors.muted} !important; }
-        .feature-card { background-color: ${colors.card} !important; border-color: ${colors.border} !important; }
-        .feature-card h3 { color: ${colors.text} !important; }
-        .feature-card p { color: ${colors.muted} !important; }
-        .section-title h2 { color: ${colors.text} !important; }
-        .section-title p { color: ${colors.muted} !important; }
         .glass-card, .glass-card span, .glass-card i { color: #ffffff !important; }
         .product-badge { color: #ffffff !important; }
         .reviews-content h2, .reviews-content p { color: #ffffff !important; }
@@ -223,15 +203,6 @@ function applySettings() {
         .review-card p, .review-card strong, .review-card small { color: #ffffff !important; }
         .review-card div[style*="background"] p, .review-card div[style*="background"] strong { color: #ffffff !important; }
         .review-input { background: ${isLight ? '#ffffff' : 'rgba(0,0,0,0.3)'} !important; color: ${colors.text} !important; border: 1px solid ${isLight ? '#cbd5e1' : colors.border} !important; }
-        .filter-btn { color: ${colors.text} !important; border-color: ${colors.border} !important; }
-        .add-to-cart-btn { color: ${colors.text} !important; }
-        ${currentTheme === 'ramadan' ? `
-            body::after {
-                content: '🌙✨';
-                position: fixed; top: 15px; left: 20px;
-                font-size: 1.5rem; opacity: 0.6; z-index: 999; pointer-events: none;
-            }
-        ` : ''}
     `;
 
     // Also set directly on root for immediate effect (before CSS parses)
@@ -948,7 +919,7 @@ async function renderReviews() {
                 ${r.reply ? `
                     <div style="margin-top:12px; padding:10px; background:rgba(14,165,233,0.1); border-right:3px solid var(--primary-color); border-radius:8px;">
                         <strong style="color:var(--primary-color); display:block; font-size:0.85rem; margin-bottom:4px;">رد المتجر:</strong>
-                        <p style="font-size:0.85rem; color:#fff;">${r.reply}</p>
+                        <p style="font-size:0.85rem; color:#000000;">${r.reply}</p>
                     </div>
                 ` : ''}
             </div>
@@ -1099,3 +1070,190 @@ function closeSuccessModal() {
     document.getElementById('success-overlay').classList.remove('active');
     document.getElementById('success-modal').classList.remove('active');
 }
+
+// ===== SMART OFFER SYSTEM =====
+let smartOfferActive = false;
+let cartIdleTimer = null;
+
+function initSmartOffers() {
+    if (!settings.offers) return;
+    const offers = settings.offers;
+
+    // 1. Welcome Popup
+    if (offers.welcome && offers.welcome.enabled) {
+        const w = offers.welcome;
+        if (w.oncePerSession && sessionStorage.getItem('perex_offer_welcome_shown')) return initExitIntent();
+        setTimeout(() => {
+            if (!smartOfferActive) showSmartOffer(w, 'welcome');
+        }, (w.delay || 5) * 1000);
+    }
+
+    // 2. Exit Intent
+    initExitIntent();
+
+    // 3. Cart Abandonment
+    initCartAbandonment();
+}
+
+function initExitIntent() {
+    const offers = settings.offers;
+    if (!offers || !offers.exitIntent || !offers.exitIntent.enabled) return;
+    const e = offers.exitIntent;
+    if (e.oncePerSession && sessionStorage.getItem('perex_offer_exit_shown')) return;
+
+    // Desktop: mouseleave at top
+    let exitTriggered = false;
+    document.addEventListener('mouseleave', (ev) => {
+        if (ev.clientY <= 5 && !exitTriggered && !smartOfferActive) {
+            exitTriggered = true;
+            showSmartOffer(e, 'exit');
+        }
+    });
+
+    // Mobile: detect quick scroll-up (intent to leave)
+    let lastScrollY = 0;
+    let scrollUpDistance = 0;
+    window.addEventListener('scroll', () => {
+        const currentY = window.scrollY;
+        if (currentY < lastScrollY) {
+            scrollUpDistance += (lastScrollY - currentY);
+            if (scrollUpDistance > 300 && currentY < 100 && !exitTriggered && !smartOfferActive) {
+                exitTriggered = true;
+                showSmartOffer(e, 'exit');
+            }
+        } else {
+            scrollUpDistance = 0;
+        }
+        lastScrollY = currentY;
+    }, { passive: true });
+}
+
+function initCartAbandonment() {
+    const offers = settings.offers;
+    if (!offers || !offers.cartAbandonment || !offers.cartAbandonment.enabled) return;
+    const c = offers.cartAbandonment;
+    if (c.oncePerSession && sessionStorage.getItem('perex_offer_cart_shown')) return;
+
+    const resetIdleTimer = () => {
+        if (cartIdleTimer) clearTimeout(cartIdleTimer);
+        const cart = JSON.parse(localStorage.getItem('perex_cart')) || [];
+        if (cart.length === 0) return;
+
+        cartIdleTimer = setTimeout(() => {
+            if (!smartOfferActive) {
+                showSmartOffer(c, 'cart');
+            }
+        }, (c.delay || 30) * 1000);
+    };
+
+    // Start timer and reset on user interactions
+    ['scroll', 'click', 'keypress', 'mousemove', 'touchstart'].forEach(evt => {
+        document.addEventListener(evt, resetIdleTimer, { passive: true, once: false });
+    });
+
+    // Initial start with a slight delay
+    setTimeout(resetIdleTimer, 3000);
+}
+
+function buildOfferHTML(offer, type) {
+    const pos = offer.position || 'center';
+    const isBar = pos === 'top' || pos === 'bottom';
+
+    const couponHTML = offer.coupon ? `
+        <div class="smart-offer-coupon" onclick="copyOfferCoupon(this, '${offer.coupon}')" title="اضغط للنسخ">
+            ${offer.coupon} <i class="fa-regular fa-copy"></i>
+        </div>
+    ` : '';
+
+    const btnHTML = offer.btnText ? `
+        <a href="${offer.btnLink || '#products'}" class="smart-offer-btn" onclick="closeSmartOffer()">${offer.btnText}</a>
+    ` : '';
+
+    if (isBar) {
+        return `
+            <div class="smart-offer-icon"><i class="fa-solid ${offer.icon || 'fa-gift'}"></i></div>
+            <div class="smart-offer-body">
+                <h3>${offer.title || ''}</h3>
+                <p>${offer.desc || ''}</p>
+            </div>
+            <div class="smart-offer-actions">
+                ${couponHTML}
+                ${btnHTML}
+            </div>
+            <button class="smart-offer-close" onclick="closeSmartOffer()"><i class="fa-solid fa-xmark"></i></button>
+        `;
+    }
+
+    // Center popup
+    return `
+        <button class="smart-offer-close" onclick="closeSmartOffer()"><i class="fa-solid fa-xmark"></i></button>
+        <div class="smart-offer-icon"><i class="fa-solid ${offer.icon || 'fa-gift'}"></i></div>
+        <h3>${offer.title || ''}</h3>
+        <p>${offer.desc || ''}</p>
+        ${couponHTML}
+        <div>${btnHTML}</div>
+    `;
+}
+
+function showSmartOffer(offer, type) {
+    if (smartOfferActive) return;
+    smartOfferActive = true;
+
+    const container = document.getElementById('smart-offer-container');
+    if (!container) return;
+
+    const pos = offer.position || 'center';
+    const needsOverlay = pos === 'center';
+
+    container.innerHTML = `
+        ${needsOverlay ? '<div class="smart-offer-overlay" id="smart-offer-overlay"></div>' : ''}
+        <div class="smart-offer-popup position-${pos}" id="smart-offer-popup"
+             style="background: ${offer.bgColor || '#0ea5e9'}; color: ${offer.textColor || '#ffffff'};">
+            ${buildOfferHTML(offer, type)}
+        </div>
+    `;
+
+    // Trigger animation after a frame
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            const overlay = document.getElementById('smart-offer-overlay');
+            const popup = document.getElementById('smart-offer-popup');
+            if (overlay) overlay.classList.add('active');
+            if (popup) popup.classList.add('active');
+        });
+    });
+
+    // Click overlay to close (center only)
+    const overlay = document.getElementById('smart-offer-overlay');
+    if (overlay) overlay.addEventListener('click', closeSmartOffer);
+
+    // Mark as shown
+    sessionStorage.setItem(`perex_offer_${type}_shown`, '1');
+}
+
+function closeSmartOffer() {
+    const overlay = document.getElementById('smart-offer-overlay');
+    const popup = document.getElementById('smart-offer-popup');
+
+    if (overlay) overlay.classList.remove('active');
+    if (popup) popup.classList.remove('active');
+
+    setTimeout(() => {
+        const container = document.getElementById('smart-offer-container');
+        if (container) container.innerHTML = '';
+        smartOfferActive = false;
+    }, 500);
+}
+
+function copyOfferCoupon(el, code) {
+    navigator.clipboard.writeText(code).then(() => {
+        el.classList.add('copied');
+        const originalHTML = el.innerHTML;
+        el.innerHTML = `${code} <i class="fa-solid fa-check"></i>`;
+        setTimeout(() => {
+            el.classList.remove('copied');
+            el.innerHTML = originalHTML;
+        }, 2000);
+    });
+}
+
