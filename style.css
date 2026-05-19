@@ -891,7 +891,7 @@ label {
 .cart-sidebar {
     position: fixed;
     top: 0;
-    right: 0;
+    left: 0;
     width: 100%;
     max-width: 400px;
     height: 100vh;
@@ -899,7 +899,7 @@ label {
     z-index: 1002;
     display: flex;
     flex-direction: column;
-    transform: translateX(100%);
+    transform: translateX(-100%);
     transition: transform 0.4s ease;
     visibility: hidden;
 }
@@ -907,7 +907,7 @@ label {
 .cart-sidebar.active {
     transform: translateX(0);
     visibility: visible;
-    box-shadow: -5px 0 15px rgba(0,0,0,0.15);
+    box-shadow: 5px 0 15px rgba(0,0,0,0.15);
 }
 
 .cart-header {
@@ -1197,7 +1197,7 @@ label {
     .nav-links {
         position: fixed;
         top: 0;
-        right: -80%;
+        left: -80%;
         width: 80%;
         height: 100vh;
         background: var(--card-bg) !important;
@@ -1205,7 +1205,7 @@ label {
         padding: 80px 25px;
         gap: 10px;
         text-align: right;
-        transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         z-index: 99999;
         pointer-events: none;
         visibility: hidden;
@@ -1214,11 +1214,11 @@ label {
     }
     
     .nav-links.active {
-        right: 0;
+        left: 0;
         visibility: visible;
         pointer-events: auto;
-        border-left: 1px solid var(--border-color);
-        box-shadow: -15px 0 40px rgba(0,0,0,0.1);
+        border-right: 1px solid var(--border-color);
+        box-shadow: 15px 0 40px rgba(0,0,0,0.1);
     }
     
     .nav-links li {
