@@ -342,6 +342,9 @@
             <button class="tab-btn" onclick="switchTab(event, 'tab-connect')">
                 <i class="fa-solid fa-plug"></i> 2. ربط وفحص قاعدة البيانات
             </button>
+            <button class="tab-btn" onclick="switchTab(event, 'tab-deploy')">
+                <i class="fa-solid fa-cloud-arrow-up"></i> 3. استضافة ونشر المتجر
+            </button>
         </div>
 
         <!-- TAB 1: SQL SETUP -->
@@ -498,6 +501,52 @@ alter table reviews disable row level security;</pre>
                 <button class="btn btn-success" id="download-btn" onclick="downloadClient()">
                     <i class="fa-solid fa-file-arrow-down"></i> تحميل ملف supabase-client.js المحدث
                 </button>
+            </div>
+        </div>
+
+        <!-- TAB 3: DEPLOYMENT GUIDE -->
+        <div id="tab-deploy" class="tab-content">
+            <div class="alert-info">
+                <i class="fa-solid fa-circle-question"></i> &nbsp;
+                <strong>معلومة هامة:</strong> هذا المتجر مصمم ليعمل بشكل مستقل بالكامل (Client-side) على <strong>أي استضافة ويب</strong> (سواء كانت مجانية أو مدفوعة) بدون الحاجة بالضرورة لـ Vercel!
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                <!-- Hosting Option 1 -->
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border); padding: 20px; border-radius: 16px;">
+                    <h3 style="font-size: 1.1rem; color: var(--primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-server"></i> الخيار الأول: الاستضافة العادية والمشتركة (cPanel / Hostinger / Netlify / GitHub Pages)
+                    </h3>
+                    <p style="font-size: 0.9rem; line-height: 1.6; color: var(--text-muted); margin-bottom: 12px;">
+                        هذا الخيار هو الأسهل والأنسب للجميع، حيث يعمل المتجر بشكل كامل ويستقبل الطلبات فوراً.
+                    </p>
+                    <ol style="margin-right: 20px; font-size: 0.9rem; line-height: 1.7; color: var(--text-muted); display: flex; flex-direction: column; gap: 6px;">
+                        <li>قم بفك الضغط عن ملف الـ ZIP الخاص بالمتجر الذي قمت بتحميله.</li>
+                        <li>نفذ الخطوتين (1 و 2) في هذا المعالج لتنزيل ملف <strong>supabase-client.js</strong> الخاص بك.</li>
+                        <li>استبدل الملف القديم بنفس الاسم داخل مجلد المتجر بالملف المحدث الذي قمت بتنزيله.</li>
+                        <li>قم برفع جميع الملفات والمجلدات الخاصة بالمتجر مباشرة إلى استضافتك (مثال: داخل مجلد <code>public_html</code> في لوحة cPanel أو Hostinger، أو سحب المجلد وإفلاته في Netlify).</li>
+                    </ol>
+                    <div style="margin-top: 12px; padding: 10px; background: rgba(239, 68, 68, 0.05); border-right: 3px solid var(--danger); border-radius: 6px; font-size: 0.82rem; color: #fca5a5; line-height: 1.5;">
+                        <strong>تنويه:</strong> عند الرفع على استضافة ساكنة عادية، سيعمل المتجر ويسجل الطلبات وكل شيء بامتياز. ولكن، لن تظهر صورة المنتج ووصفه الديناميكي في روابط المعاينة على فيسبوك وواتساب عند مشاركتها، وستظهر بدلاً منها بيانات المتجر الافتراضية. إذا كانت معاينات التواصل الاجتماعي الديناميكية مهمة جداً لطلبك، يرجى اتباع الخيار الثاني.
+                    </div>
+                </div>
+
+                <!-- Hosting Option 2 -->
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border); padding: 20px; border-radius: 16px;">
+                    <h3 style="font-size: 1.1rem; color: #10b981; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-bolt"></i> الخيار الثاني (الأفضل): الاستضافة على منصة Vercel الاحترافية
+                    </h3>
+                    <p style="font-size: 0.9rem; line-height: 1.6; color: var(--text-muted); margin-bottom: 12px;">
+                        يتيح لك هذا الخيار الحصول على معاينات ديناميكية رائعة لكل منتج على حدة عند مشاركتها على وسائل التواصل الاجتماعي عبر الدوال السحابية المدمجة بالمتجر.
+                    </p>
+                    <ol style="margin-right: 20px; font-size: 0.9rem; line-height: 1.7; color: var(--text-muted); display: flex; flex-direction: column; gap: 6px;">
+                        <li>قم بإنشاء مستودع جديد (Repository) على حسابك في <strong>GitHub</strong>.</li>
+                        <li>ارفع مجلد المتجر كاملاً (بعد استبدال ملف <code>supabase-client.js</code> المحدث) إلى هذا المستودع.</li>
+                        <li>قم بالدخول إلى موقع <strong><a href="https://vercel.com" target="_blank" style="color: #10b981; text-decoration: underline;">Vercel</a></strong> وسجل الدخول باستخدام حساب GitHub الخاص بك.</li>
+                        <li>اضغط على زر <strong>Add New</strong> ثم <strong>Project</strong>.</li>
+                        <li>اختر المستودع الذي رفعته للتو، واضغط على <strong>Deploy</strong>. سيقوم Vercel بتهيئة المتجر والدوال السحابية تلقائياً في أقل من دقيقة وسيعطيك رابطاً مجانياً للمتجر!</li>
+                    </ol>
+                </div>
             </div>
         </div>
     </div>
