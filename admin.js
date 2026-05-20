@@ -2030,7 +2030,7 @@ async function cloneStore() {
         { path: 'admin.html', type: 'text' },
         { path: 'admin.css', type: 'text' },
         { path: 'admin.js', type: 'text' },
-        { path: 'vercel.json', type: 'text' },
+        { path: 'vercel-config.json.txt', type: 'text', zipPath: 'vercel.json' },
         { path: 'setup.html', type: 'text' },
         { path: 'prerx%20logo.jpeg', type: 'blob', zipPath: 'prerx logo.jpeg' },
         { path: 'api-landing.js.txt', type: 'text', zipPath: 'api/landing.js' }
