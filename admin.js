@@ -23,6 +23,10 @@ const THEMES = {
         primary: "#0d9488", secondary: "#14b8a6", bg: "#fafafa", card: "#ffffff", 
         text: "#0f172a", muted: "#64748b", border: "#e2e8f0", name: "السمة الفاتحة المتميزة" 
     },
+    warm_beige: { 
+        primary: "#c5a880", secondary: "#b89c72", bg: "#faf8f5", card: "#ffffff", 
+        text: "#2e2518", muted: "#8a7f71", border: "#f1ede4", name: "سمة البيج الدافئ" 
+    },
     festive: { 
         primary: "#fcd34d", secondary: "#fbbf24", bg: "#7f1d1d", card: "#991b1b", 
         text: "#fef2f2", muted: "#fca5a5", border: "#b91c1c", name: "سمة الأعياد" 
@@ -2028,8 +2032,8 @@ async function cloneStore() {
         { path: 'admin.js', type: 'text' },
         { path: 'vercel.json', type: 'text' },
         { path: 'setup.html', type: 'text' },
-        { path: 'prerx logo.jpeg', type: 'blob' },
-        { path: 'api/landing.js', type: 'text' }
+        { path: 'prerx%20logo.jpeg', type: 'blob', zipPath: 'prerx logo.jpeg' },
+        { path: 'api-landing.js.txt', type: 'text', zipPath: 'api/landing.js' }
     ];
 
     try {
@@ -2040,11 +2044,12 @@ async function cloneStore() {
         const zip = new JSZip();
 
         for (const file of filesToFetch) {
-            progress.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> جاري قراءة وتجهيز: ${file.path}...`;
+            const displayPath = file.zipPath || file.path;
+            progress.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> جاري قراءة وتجهيز: ${displayPath}...`;
             
             const response = await fetch(file.path);
             if (!response.ok) {
-                throw new Error(`فشل تحميل الملف: ${file.path}`);
+                throw new Error(`فشل تحميل الملف: ${displayPath}`);
             }
 
             let content;
@@ -2057,7 +2062,7 @@ async function cloneStore() {
                 }
             }
 
-            zip.file(file.path, content);
+            zip.file(file.zipPath || file.path, content);
         }
 
         progress.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري ضغط الملفات وتوليد ملف الـ ZIP...';

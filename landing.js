@@ -132,6 +132,10 @@ function applySettings() {
             primary: "#0d9488", secondary: "#14b8a6", bg: "#fafafa", card: "#ffffff", 
             text: "#0f172a", muted: "#64748b", border: "#e2e8f0" 
         },
+        warm_beige: { 
+            primary: "#c5a880", secondary: "#b89c72", bg: "#faf8f5", card: "#ffffff", 
+            text: "#2e2518", muted: "#8a7f71", border: "#f1ede4" 
+        },
         festive: { 
             primary: "#fbbf24", secondary: "#f59e0b", bg: "#450a0a", card: "#7f1d1d", 
             text: "#fffbeb", muted: "#fcd34d", border: "rgba(251,191,36,0.15)" 
@@ -142,7 +146,7 @@ function applySettings() {
         }
     };    const currentTheme = settings.theme || 'dark';
     const colors = THEMES[currentTheme] || THEMES.dark;
-    const isLight = currentTheme === 'light' || currentTheme === 'light_premium';
+    const isLight = currentTheme === 'light' || currentTheme === 'light_premium' || currentTheme === 'warm_beige';
     const gradient = `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`;
 
     const style = document.getElementById('dynamic-colors');

@@ -1,0 +1,164 @@
+// =========================================================================
+// WARNING: This file is a static backup of 'api/landing.js' used for the
+// store cloning feature. If you edit 'api/landing.js', you MUST copy the
+// updated code here as well to ensure the cloning feature exports the latest logic.
+// =========================================================================
+
+const fs = require('fs');
+const path = require('path');
+
+// Fallback image if product has no images
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1601593346740-925612772716?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80';
+const BASE_URL = 'https://perexstore.com'; // Ensure HTTPS
+
+export default async function handler(req, res) {
+    const { id } = req.query;
+
+    // Load the raw HTML file from the project root
+    const filePath = path.join(process.cwd(), 'landing.html');
+    let html = '';
+    
+    try {
+        html = fs.readFileSync(filePath, 'utf8');
+    } catch (e) {
+        console.error('Could not read landing.html', e);
+        return res.status(500).send('Internal Server Error');
+    }
+
+    // Load keys from supabase-client.js
+    let SUPABASE_URL = 'https://ecbxkudufxpvipxfcdtj.supabase.co';
+    let SUPABASE_ANON_KEY = 'sb_publishable_DTqljapdUl9XTLI-5u13_Q_1Qg6BDx2';
+
+    try {
+        const clientPath = path.join(process.cwd(), 'supabase-client.js');
+        if (fs.existsSync(clientPath)) {
+            const content = fs.readFileSync(clientPath, 'utf8');
+            const urlMatch = content.match(/const\s+SUPABASE_URL\s*=\s*['"]([^'"]+)['"]/);
+            const keyMatch = content.match(/const\s+SUPABASE_ANON_KEY\s*=\s*['"]([^'"]+)['"]/);
+            if (urlMatch) SUPABASE_URL = urlMatch[1];
+            if (keyMatch) SUPABASE_ANON_KEY = keyMatch[1];
+        }
+    } catch (e) {
+        console.error('Error reading supabase-client.js for keys', e);
+    }
+
+    // Fetch dynamic store name from settings table
+    let storeName = 'Perex Store';
+    try {
+        const settingsResponse = await fetch(`${SUPABASE_URL}/rest/v1/settings?key=eq.store&select=value`, {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            }
+        });
+        const settingsData = await settingsResponse.json();
+        if (settingsData && settingsData.length > 0 && settingsData[0].value && settingsData[0].value.name) {
+            storeName = settingsData[0].value.name;
+        }
+    } catch (e) {
+        console.error('Error fetching settings for store name in api/landing.js', e);
+    }
+
+    if (!id) {
+        // If no ID is provided, just return the plain HTML with default store meta tags
+        const defaultTags = `
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="${storeName}">
+    <meta property="og:title" content="${storeName} - عرض خاص">
+    <meta property="og:description" content="تسوق الآن من ${storeName}. جودة، أناقة، وحماية فائقة.">
+    <meta property="og:image" content="${FALLBACK_IMAGE}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:url" content="${BASE_URL}/landing">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="${storeName} - عرض خاص">
+    <meta name="twitter:description" content="تسوق الآن من ${storeName}. جودة، أناقة، وحماية فائقة.">
+    <meta name="twitter:image" content="${FALLBACK_IMAGE}">
+    <meta name="twitter:domain" content="${new URL(BASE_URL).hostname}">
+        `;
+        html = html.replace('<!-- OG_META_TAGS -->', defaultTags);
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 's-maxage=1, stale-while-revalidate=59');
+        return res.status(200).send(html);
+    }
+
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/products?id=eq.${id}&select=*&limit=1`, {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            }
+        });
+
+        const products = await response.json();
+        
+        if (products && products.length > 0) {
+            const product = products[0];
+            const title = product.name ? `${product.name} - ${storeName}` : storeName;
+            
+            // Clean description (remove HTML tags if any and truncate)
+            let rawDesc = product.description || `تسوق هذا Connor المنتج المميز من ${storeName}.`;
+            rawDesc = rawDesc.replace(/<[^>]*>?/gm, ''); // Strip HTML tags
+            const description = rawDesc.length > 160 ? rawDesc.substring(0, 157) + '...' : rawDesc;
+            
+            let image = (product.images && product.images.length > 0) ? product.images[0] : FALLBACK_IMAGE;
+            // Ensure image is an absolute URL
+            if (image && !image.startsWith('http')) {
+                if (!image.startsWith('/')) image = '/' + image;
+                image = BASE_URL + image;
+            }
+            
+            const price = product.price || 0;
+            const stockStatus = (product.stock > 0 || product.stock === undefined) ? 'instock' : 'outofstock';
+            const productUrl = `${BASE_URL}/landing?id=${id}`;
+
+            const ogTags = `
+    <meta property="og:type" content="product">
+    <meta property="og:site_name" content="${storeName}">
+    <meta property="og:title" content="${title.replace(/"/g, '&quot;')}">
+    <meta property="og:description" content="${description.replace(/"/g, '&quot;').replace(/\n/g, ' ')}">
+    <meta property="og:image" content="${image}">
+    <meta property="og:image:secure_url" content="${image}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:url" content="${productUrl}">
+    <meta property="product:price:amount" content="${price}">
+    <meta property="product:price:currency" content="EGP">
+    <meta property="product:availability" content="${stockStatus}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:domain" content="${new URL(BASE_URL).hostname}">
+    <meta name="twitter:url" content="${productUrl}">
+    <meta name="twitter:title" content="${title.replace(/"/g, '&quot;')}">
+    <meta name="twitter:description" content="${description.replace(/"/g, '&quot;').replace(/\n/g, ' ')}">
+    <meta name="twitter:image" content="${image}">
+    <title>${title.replace(/"/g, '&quot;')}</title>
+            `;
+
+            html = html.replace('<!-- OG_META_TAGS -->', ogTags);
+            html = html.replace('<title>Perex Store - عرض خاص</title>', '');
+        } else {
+            // Product not found
+            const fallbackTags = `
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="${storeName}">
+    <meta property="og:title" content="منتج غير متوفر - ${storeName}">
+    <meta property="og:description" content="عذراً، هذا المنتج غير متوفر حالياً.">
+    <meta property="og:image" content="${FALLBACK_IMAGE}">
+    <meta property="og:url" content="${BASE_URL}/landing">
+    <meta name="twitter:card" content="summary_large_image">
+            `;
+            html = html.replace('<!-- OG_META_TAGS -->', fallbackTags);
+        }
+
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 's-maxage=1, stale-while-revalidate=59');
+        return res.status(200).send(html);
+        
+    } catch (err) {
+        console.error('Error fetching product data:', err);
+        html = html.replace('<!-- OG_META_TAGS -->', '');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 's-maxage=1, stale-while-revalidate=59');
+        return res.status(200).send(html);
+    }
+}
