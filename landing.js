@@ -194,6 +194,80 @@ function applySettings() {
             background-color: ${colors.bg} !important;
             color: ${colors.muted} !important;
         }
+        /* ===== Dynamic Variants UI ===== */
+        .variant-row-container {
+            background-color: ${isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)'} !important;
+            border: 1px dashed ${isLight ? '#cbd5e1' : 'rgba(255,255,255,0.1)'} !important;
+            border-radius: 16px !important;
+            padding: 20px !important;
+            margin-bottom: 20px !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02) !important;
+        }
+        .variant-row-header {
+            border-bottom: 1px solid ${isLight ? '#cbd5e1' : 'rgba(255,255,255,0.08)'} !important;
+            padding-bottom: 12px !important;
+            margin-bottom: 15px !important;
+        }
+        .variant-label {
+            color: ${colors.text} !important;
+            font-size: 0.95rem !important;
+            font-weight: 700 !important;
+            margin-bottom: 10px !important;
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+        }
+        .variant-label .selected-val {
+            background-color: ${isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.08)'} !important;
+            color: ${colors.primary} !important;
+            padding: 2px 10px !important;
+            border-radius: 20px !important;
+            font-size: 0.8rem !important;
+            font-weight: 600 !important;
+        }
+        .variant-btn {
+            background-color: ${isLight ? '#ffffff' : 'rgba(255,255,255,0.05)'} !important;
+            color: ${colors.text} !important;
+            border: 1px solid ${isLight ? '#cbd5e1' : 'rgba(255,255,255,0.1)'} !important;
+            padding: 10px 18px !important;
+            border-radius: 10px !important;
+            font-weight: 600 !important;
+            font-size: 0.9rem !important;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02) !important;
+        }
+        .variant-btn:hover {
+            border-color: ${colors.primary} !important;
+            color: ${colors.primary} !important;
+            background-color: ${isLight ? '#f8fafc' : 'rgba(255,255,255,0.08)'} !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+        }
+        .variant-btn.active {
+            background: ${gradient} !important;
+            color: #ffffff !important;
+            border-color: transparent !important;
+            font-weight: 700 !important;
+            transform: translateY(-2px) scale(1.03) !important;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15) !important;
+        }
+        .landing-qty-controls {
+            background-color: ${isLight ? '#f1f5f9' : 'rgba(0,0,0,0.2)'} !important;
+            border: 1px solid ${isLight ? '#cbd5e1' : 'rgba(255,255,255,0.05)'} !important;
+            border-radius: 12px !important;
+            padding: 6px 15px !important;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05) !important;
+        }
+        .landing-qty-controls button {
+            color: ${colors.primary} !important;
+            transition: transform 0.2s ease !important;
+        }
+        .landing-qty-controls button:hover {
+            transform: scale(1.2) !important;
+        }
+        .landing-qty-controls span {
+            color: ${colors.text} !important;
+        }
     `;
 
     // Set directly on root for immediate effect
@@ -221,9 +295,11 @@ function applySettings() {
     // Store Identity
     if (settings.store.name) {
         document.querySelectorAll('.logo span').forEach(s => s.innerText = settings.store.name);
+        document.title = `${settings.store.name} - صفحة المنتج`;
     }
     if (settings.store.logo) {
-        document.querySelectorAll('.logo img').forEach(img => img.src = settings.store.logo);
+        document.querySelectorAll('.logo img, .loader-logo').forEach(img => img.src = settings.store.logo);
+        document.querySelectorAll("link[rel*='icon']").forEach(link => link.href = settings.store.logo);
     }
 }
 
@@ -246,6 +322,7 @@ function loadProduct() {
     }
 
     currentProduct = p;
+    document.title = `${p.name} - ${(settings.store && settings.store.name) || 'Perex Store'}`;
     landingVariantRows = [{ id: Date.now(), color: '', size: '', qty: 1 }];
 
     const container = document.getElementById('landing-content');
@@ -352,7 +429,12 @@ function renderLandingVariants() {
                 <div class="variant-group">
                     <label class="variant-label">اللون: <span class="selected-val">${row.color || 'اختر اللون'}</span></label>
                     <div class="variant-options">
-                        ${p.colors.map(c => `<button type="button" class="variant-btn ${row.color === c ? 'active' : ''}" onclick="updateVariantRow(${row.id}, 'color', '${c}')">${c}</button>`).join('')}
+                        ${p.colors.map(c => `
+                            <button type="button" class="variant-btn ${row.color === c ? 'active' : ''}" onclick="updateVariantRow(${row.id}, 'color', '${c}')">
+                                <span class="color-dot" style="background-color: ${getColorHex(c)};"></span>
+                                <span>${c}</span>
+                            </button>
+                        `).join('')}
                     </div>
                 </div>
             `;
@@ -383,9 +465,11 @@ function renderLandingVariants() {
     });
     
     html += `
-        <button type="button" class="btn btn-secondary" style="width:100%; padding:12px; border-radius:12px; margin-bottom:20px; font-size:1rem; border: 2px dashed var(--primary-color);" onclick="addVariantRow()">
-            <i class="fa-solid fa-plus"></i> إضافة صنف آخر (لون/مقاس مختلف)
-        </button>
+        <div style="display:flex; justify-content:center; margin-bottom:20px; width:100%;">
+            <button type="button" class="add-row-btn" onclick="addVariantRow()">
+                <i class="fa-solid fa-circle-plus"></i> إضافة صنف آخر (لون/مقاس مختلف)
+            </button>
+        </div>
     `;
     
     container.innerHTML = html;
@@ -644,14 +728,23 @@ async function submitLandingOrder(e, productId) {
             }).catch(err => console.warn('Coupon usage update failed:', err));
         }
 
-        // WhatsApp
+        // WhatsApp Detailed Receipt Breakdown
         let msg = `*${settings.store.waMsg}*\n\n`;
         msg += `👤 *العميل:* ${orderData.customer_name}\n`;
         msg += `📞 *الهاتف:* ${orderData.customer_phone}\n`;
         msg += `📍 *العنوان:* ${orderData.governorate} - ${orderData.district}\n`;
         msg += `🏠 *التفاصيل:* ${orderData.address}\n\n`;
-        msg += `📦 *المنتج:* ${p.name}\n`;
-        msg += `💰 *الإجمالي:* ${total} ج.م`;
+        msg += `📦 *المنتجات المطلوبة:*\n`;
+        
+        orderItems.forEach((item, idx) => {
+            msg += `${idx + 1}. ${item.name} - (عدد: ${item.qty}) (${item.price * item.qty} ج.م)\n`;
+        });
+        
+        msg += `\n💰 *الحساب:*\n`;
+        msg += `قيمة المنتجات: ${subtotal} ج.م\n`;
+        if (discount > 0) msg += `خصم الكوبون: -${discount} ج.م\n`;
+        msg += `مصاريف الشحن: ${ship === 0 ? 'مجاني' : ship + ' ج.م'}\n`;
+        msg += `*الإجمالي المطلوب:* ${total} ج.م\n`;
         
         window.open(`https://wa.me/${settings.store.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
 
@@ -684,4 +777,72 @@ function initPixel(id) {
 function closeSuccessModal() {
     document.getElementById('success-overlay').classList.remove('active');
     document.getElementById('success-modal').classList.remove('active');
+}
+
+function getColorHex(colorName) {
+    if (!colorName) return '#94a3b8';
+    
+    // Normalize string
+    const normalized = colorName.trim().toLowerCase();
+    
+    // Check if it's already a valid hex code
+    const hexMatch = normalized.match(/#([0-9A-Fa-f]{3,8})/);
+    if (hexMatch) return '#' + hexMatch[1];
+    
+    // Arabic & English color mapping
+    const map = {
+        // Arabic
+        'أسود': '#000000',
+        'اسود': '#000000',
+        'أبيض': '#ffffff',
+        'ابيض': '#ffffff',
+        'أحمر': '#ef4444',
+        'احمر': '#ef4444',
+        'أزرق': '#2563eb',
+        'ازرق': '#2563eb',
+        'أخضر': '#10b981',
+        'اخضر': '#10b981',
+        'أصفر': '#eab308',
+        'اصفر': '#eab308',
+        'رمادي': '#6b7280',
+        'بني': '#78350f',
+        'وردي': '#ec4899',
+        'بنفسجي': '#8b5cf6',
+        'برتقالي': '#f97316',
+        'كحلي': '#1e3a8a',
+        'ذهبي': '#d4af37',
+        'فضي': '#cbd5e1',
+        'بيج': '#f5f5dc',
+        'سماوي': '#38bdf8',
+        'زيتي': '#3f6212',
+        
+        // English
+        'black': '#000000',
+        'white': '#ffffff',
+        'red': '#ef4444',
+        'blue': '#2563eb',
+        'green': '#10b981',
+        'yellow': '#eab308',
+        'gray': '#6b7280',
+        'grey': '#6b7280',
+        'brown': '#78350f',
+        'pink': '#ec4899',
+        'purple': '#8b5cf6',
+        'orange': '#f97316',
+        'navy': '#1e3a8a',
+        'gold': '#d4af37',
+        'silver': '#cbd5e1',
+        'beige': '#f5f5dc',
+        'cyan': '#38bdf8'
+    };
+    
+    // Look up in map
+    for (const [key, val] of Object.entries(map)) {
+        if (normalized.includes(key)) {
+            return val;
+        }
+    }
+    
+    // Fallback: Check if it's a valid HTML color name
+    return colorName;
 }

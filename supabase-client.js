@@ -1,6 +1,13 @@
 const SUPABASE_URL = 'https://ecbxkudufxpvipxfcdtj.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_DTqljapdUl9XTLI-5u13_Q_1Qg6BDx2';
 
+// Dynamic installation check for cloned stores
+if (SUPABASE_URL === 'YOUR_SUPABASE_URL' || !SUPABASE_URL) {
+    if (window.location.pathname.indexOf('setup.html') === -1) {
+        window.location.href = 'setup.html';
+    }
+}
+
 const _supabaseClient = (window.supabase || window.Supabase);
 if (!_supabaseClient) {
     console.error('Supabase library not loaded! Check your script tags in HTML.');

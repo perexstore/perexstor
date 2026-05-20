@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إعداد وربط المتجر الجديد | Perex Setup</title>
+    <!-- Google Fonts: Outfit & Cairo -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Premium Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase Client JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary: #0ea5e9;
+            --primary-gradient: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%);
+            --bg: #090d16;
+            --card-bg: rgba(17, 24, 39, 0.7);
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Cairo', 'Outfit', sans-serif;
+            background-color: var(--bg);
+            background-image: radial-gradient(circle at 10% 20%, rgba(14, 165, 233, 0.1) 0%, transparent 40%),
+                              radial-gradient(circle at 90% 80%, rgba(56, 189, 248, 0.06) 0%, transparent 40%);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 850px;
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .logo-icon {
+            width: 70px;
+            height: 70px;
+            background: var(--primary-gradient);
+            border-radius: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 15px;
+            font-size: 2.2rem;
+            color: white;
+            box-shadow: 0 8px 24px rgba(14, 165, 233, 0.3);
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Tabs System */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+            margin-bottom: 30px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            padding: 8px 20px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            font-family: inherit;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-btn:hover {
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .tab-btn.active {
+            color: white;
+            background: var(--primary-gradient);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Form Controls */
+        .form-group {
+            margin-bottom: 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .form-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 18px;
+            color: white;
+            font-family: 'Outfit', 'Cairo', sans-serif;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(14, 165, 233, 0.15);
+        }
+
+        /* SQL Editor Copy Style */
+        .code-container {
+            position: relative;
+            background: #020617;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            margin: 20px 0;
+            overflow-x: auto;
+            max-height: 350px;
+        }
+
+        .code-container pre {
+            font-family: 'Consolas', monospace;
+            font-size: 0.85rem;
+            color: #38bdf8;
+            line-height: 1.5;
+            direction: ltr;
+            text-align: left;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .copy-btn:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.25);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(14, 165, 233, 0.35);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.25);
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
+        }
+
+        /* Status & Toast */
+        .status-box {
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            font-size: 0.9rem;
+            display: none;
+            line-height: 1.6;
+        }
+
+        .status-box.pending {
+            display: block;
+            background: rgba(14, 165, 233, 0.1);
+            border: 1px solid rgba(14, 165, 233, 0.2);
+            color: #7dd3fc;
+        }
+
+        .status-box.success {
+            display: block;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: #6ee7b7;
+        }
+
+        .status-box.error {
+            display: block;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+
+        .alert-info {
+            background: rgba(14, 165, 233, 0.05);
+            border-right: 4px solid var(--primary);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: var(--text-muted);
+        }
+
+        .alert-info strong {
+            color: var(--text);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1e293b;
+            border: 1px solid var(--border);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 10000;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <div class="logo-icon"><i class="fa-solid fa-store"></i></div>
+            <h1>تهيئة وتثبيت المتجر المستنسخ</h1>
+            <p>قم باتباع الخطوات البسيطة التالية لربط وتثبيت قاعدة البيانات الجديدة لمتجرك.</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab(event, 'tab-sql')">
+                <i class="fa-solid fa-database"></i> 1. تهيئة الجداول في Supabase
+            </button>
+            <button class="tab-btn" onclick="switchTab(event, 'tab-connect')">
+                <i class="fa-solid fa-plug"></i> 2. ربط وفحص قاعدة البيانات
+            </button>
+        </div>
+
+        <!-- TAB 1: SQL SETUP -->
+        <div id="tab-sql" class="tab-content active">
+            <div class="alert-info">
+                <i class="fa-solid fa-circle-info"></i> &nbsp;
+                <strong>خطوة هامة:</strong> لكي يعمل متجرك المستنسخ بشكل صحيح، يجب أن تقوم بإنشاء الجداول اللازمة في قاعدة بيانات <strong>Supabase</strong> الخاصة بك أولاً.
+            </div>
+
+            <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-muted); margin-bottom: 10px;">
+                قم بنسخ كود الـ SQL البرمجي أدناه بالكامل، ثم اذهب إلى حسابك في <strong>Supabase</strong>، وادخل إلى <strong>SQL Editor</strong>، وافتح ورقة عمل جديدة (New Query)، ثم الصق الكود واضغط على زر <strong>Run</strong> لتأسيس الجداول في 10 ثوانٍ فقط!
+            </p>
+
+            <div class="code-container">
+                <button class="copy-btn" onclick="copySQLCode()"><i class="fa-solid fa-copy"></i> نسخ الكود</button>
+                <pre id="sql-code-block">-- Perex Store Database Setup Script
+-- Paste this script inside your Supabase SQL Editor and click 'Run'!
+
+-- 1. Create Categories Table
+create table if not exists categories (
+    id text primary key,
+    name text not null,
+    slug text not null,
+    "order" integer default 0,
+    is_visible boolean default true,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 2. Create Products Table
+create table if not exists products (
+    id bigint generated by default as identity primary key,
+    name text not null,
+    price numeric not null,
+    old_price numeric,
+    stock integer default 0,
+    badge text,
+    description text,
+    rating numeric default 5,
+    pixel_id text,
+    images text[] default '{}'::text[],
+    has_colors boolean default false,
+    colors text[] default '{}'::text[],
+    has_sizes boolean default false,
+    sizes text[] default '{}'::text[],
+    is_visible boolean default true,
+    category text references categories(id) on delete set null,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 3. Create Coupons Table
+create table if not exists coupons (
+    id bigint generated by default as identity primary key,
+    code text unique not null,
+    type text default 'percentage',
+    discount numeric not null,
+    min_order numeric default 0,
+    max_discount numeric default 0,
+    free_shipping boolean default false,
+    apply_type text default 'all',
+    target_ids text[] default '{}'::text[],
+    expiry_date date,
+    max_uses integer default 100,
+    current_uses integer default 0,
+    is_active boolean default true,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 4. Create Orders Table
+create table if not exists orders (
+    id bigint primary key,
+    status text default 'new',
+    customer_name text,
+    customer_phone text,
+    governorate text,
+    district text,
+    address text,
+    notes text,
+    items jsonb default '[]'::jsonb,
+    subtotal numeric default 0,
+    shipping numeric default 0,
+    discount numeric default 0,
+    total numeric default 0,
+    coupon text,
+    admin_note text,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 5. Create Settings Table
+create table if not exists settings (
+    key text primary key,
+    value jsonb,
+    updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 6. Create Shipping Rates Table
+create table if not exists shipping_rates (
+    id bigint generated by default as identity primary key,
+    name text not null,
+    cost numeric not null,
+    is_active boolean default true,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 7. Create Reviews Table
+create table if not exists reviews (
+    id bigint generated by default as identity primary key,
+    product_id bigint references products(id) on delete cascade,
+    customer_name text not null,
+    rating integer default 5,
+    comment text,
+    is_visible boolean default true,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Disable Row Level Security (RLS) for simple client-side access
+alter table categories disable row level security;
+alter table products disable row level security;
+alter table coupons disable row level security;
+alter table orders disable row level security;
+alter table settings disable row level security;
+alter table shipping_rates disable row level security;
+alter table reviews disable row level security;</pre>
+            </div>
+
+            <button class="btn btn-primary" onclick="goToStep2()">الذهاب لربط قاعدة البيانات &nbsp; <i class="fa-solid fa-arrow-left"></i></button>
+        </div>
+
+        <!-- TAB 2: CONNECTION & DOWNLOAD -->
+        <div id="tab-connect" class="tab-content">
+            <div class="alert-info">
+                <i class="fa-solid fa-plug"></i> &nbsp;
+                أدخل مفاتيح ربط قاعدة البيانات الخاصة بك في الحقول أدناه لفحصها والتأكد من نجاح الاتصال.
+            </div>
+
+            <div class="form-group">
+                <label for="supabase-url"><i class="fa-solid fa-link"></i> رابط قاعدة البيانات (Supabase Project URL):</label>
+                <input type="text" id="supabase-url" class="form-input" placeholder="https://xxxxxx.supabase.co" dir="ltr">
+            </div>
+
+            <div class="form-group">
+                <label for="supabase-key"><i class="fa-solid fa-key"></i> مفتاح الاتصال العام (Supabase Anon Key):</label>
+                <input type="text" id="supabase-key" class="form-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." dir="ltr">
+            </div>
+
+            <button class="btn btn-primary" onclick="testConnection()">فحص اتصال قاعدة البيانات &nbsp; <i class="fa-solid fa-circle-play"></i></button>
+
+            <div id="test-status" class="status-box"></div>
+
+            <div id="download-section" style="margin-top: 30px; display: none;">
+                <div style="background: rgba(16, 185, 129, 0.05); border-right: 4px solid var(--success); padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 0.9rem; line-height: 1.6;">
+                    <i class="fa-solid fa-circle-check" style="color: var(--success);"></i> &nbsp;
+                    <strong>تم فحص الاتصال بالكامل!</strong> قاعدة البيانات متوافقة وبإمكانك الآن تحميل ملف ربط الاتصال. قم بتحميل الملف واستبدال الملف القديم بنفس الاسم داخل مجلد المتجر لتشغيل متجرك الجديد فوراً.
+                </div>
+                <button class="btn btn-success" id="download-btn" onclick="downloadClient()">
+                    <i class="fa-solid fa-file-arrow-down"></i> تحميل ملف supabase-client.js المحدث
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script>
+        function switchTab(e, tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            e.currentTarget.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        function goToStep2() {
+            document.querySelectorAll('.tab-btn')[1].click();
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = type === 'success' ? '<i class="fa-solid fa-circle-check" style="color:#10b981"></i>' : '<i class="fa-solid fa-triangle-exclamation" style="color:#ef4444"></i>';
+            toast.innerHTML = `${icon} &nbsp; ${message}`;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        function copySQLCode() {
+            const sqlText = document.getElementById('sql-code-block').innerText;
+            navigator.clipboard.writeText(sqlText).then(() => {
+                showToast('تم نسخ كود الـ SQL بنجاح!');
+            }).catch(() => {
+                showToast('فشل النسخ التلقائي، قم بنسخه يدوياً', 'error');
+            });
+        }
+
+        async function testConnection() {
+            const url = document.getElementById('supabase-url').value.trim();
+            const key = document.getElementById('supabase-key').value.trim();
+            
+            if (!url || !key) {
+                showToast('برجاء إدخال البيانات المطلوبة لفحص الاتصال', 'error');
+                return;
+            }
+
+            const statusBox = document.getElementById('test-status');
+            const downloadSec = document.getElementById('download-section');
+            
+            statusBox.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري محاولة فحص الاتصال بقاعدة البيانات...';
+            statusBox.className = 'status-box pending';
+            downloadSec.style.display = 'none';
+
+            try {
+                // Initialize supabase client dynamically
+                const client = supabase.createClient(url, key);
+                
+                // Try fetching from categories table to verify structure
+                const { data, error } = await client.from('categories').select('*').limit(1);
+                
+                if (error) {
+                    throw error;
+                }
+
+                statusBox.innerHTML = '<i class="fa-solid fa-circle-check"></i> تم فحص الاتصال وقاعدة البيانات بنجاح! جميع الجداول سليمة وتعمل بشكل مثالي.';
+                statusBox.className = 'status-box success';
+                downloadSec.style.display = 'block';
+                showToast('تم الاتصال وفحص قاعدة البيانات بنجاح!');
+            } catch (err) {
+                console.error(err);
+                statusBox.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> فشل الاتصال بقاعدة البيانات: <br><strong>${err.message || err.hint || 'الرابط أو مفتاح الاتصال غير صالح'}</strong><br><small style="margin-top: 5px; display:block;">تأكد من نسخ مفاتيحك بدقة، وإنشاء الجداول في Supabase عبر نسخ الكود في التبويب الأول أولاً.</small>`;
+                statusBox.className = 'status-box error';
+                showToast('فشل الاتصال بقاعدة البيانات، راجع التفاصيل', 'error');
+            }
+        }
+
+        function downloadClient() {
+            const url = document.getElementById('supabase-url').value.trim();
+            const key = document.getElementById('supabase-key').value.trim();
+            
+            const fileContent = `const SUPABASE_URL = '${url}';
+const SUPABASE_ANON_KEY = '${key}';
+
+const _supabaseClient = (window.supabase || window.Supabase);
+if (!_supabaseClient) {
+    console.error('Supabase library not loaded! Check your script tags in HTML.');
+}
+const _supabase = _supabaseClient ? _supabaseClient.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+// Helper function to handle Supabase responses
+async function handleSupabase(promise) {
+    if (!_supabase) {
+        throw new Error('Supabase client not initialized. Check your configuration.');
+    }
+    const { data, error, status, statusText } = await promise;
+    if (error) {
+        console.error('Supabase Error Details:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code,
+            status: status
+        });
+        const msg = error.message || statusText || 'Unknown Supabase Error';
+        throw new Error(\`\${msg} (\${error.code || status})\`);
+    }
+    return data;
+}
+
+const SupabaseService = {
+    // Products
+    async getProducts() {
+        return await handleSupabase(_supabase.from('products').select('*').order('created_at', { ascending: false }));
+    },
+    async saveProduct(product) {
+        if (product.id && !isNaN(product.id)) {
+            return await handleSupabase(_supabase.from('products').update(product).eq('id', product.id));
+        } else {
+            const { id, ...newProduct } = product; // Remove dummy id if present
+            return await handleSupabase(_supabase.from('products').insert(newProduct));
+        }
+    },
+    async deleteProduct(id) {
+        return await handleSupabase(_supabase.from('products').delete().eq('id', id));
+    },
+
+    // Categories
+    async getCategories() {
+        return await handleSupabase(_supabase.from('categories').select('*').order('order', { ascending: true }));
+    },
+    async saveCategory(category) {
+        return await handleSupabase(_supabase.from('categories').upsert(category));
+    },
+    async deleteCategory(id) {
+        return await handleSupabase(_supabase.from('categories').delete().eq('id', id));
+    },
+
+    // Coupons
+    async getCoupons() {
+        return await handleSupabase(_supabase.from('coupons').select('*'));
+    },
+    async saveCoupon(coupon) {
+        return await handleSupabase(_supabase.from('coupons').upsert(coupon));
+    },
+    async deleteCoupon(id) {
+        return await handleSupabase(_supabase.from('coupons').delete().eq('id', id));
+    },
+
+    // Orders
+    async getOrders() {
+        // Try ordering by created_at or timestamp based on schema
+        return await handleSupabase(_supabase.from('orders').select('*').order('id', { ascending: false }));
+    },
+    async saveOrder(order) {
+        // Fix: If the 'orders' table in Supabase doesn't have an auto-incrementing ID (Identity column),
+        // we must provide a unique ID from the frontend.
+        if (!order.id) {
+            // Generating a 9-digit numeric ID (safe for both Int32 and Int64 columns)
+            // Using a slice of timestamp + 2 random digits
+            const timestampSlice = Date.now().toString().slice(-7); 
+            const randomSuffix = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+            order.id = parseInt(timestampSlice + randomSuffix);
+        }
+        return await handleSupabase(_supabase.from('orders').upsert(order).select().single());
+    },
+    async updateOrderStatus(id, status) {
+        return await handleSupabase(_supabase.from('orders').update({ status }).eq('id', id));
+    },
+    async deleteOrder(id) {
+        return await handleSupabase(_supabase.from('orders').delete().eq('id', id));
+    },
+
+    // Settings
+    async getSettings() {
+        const data = await handleSupabase(_supabase.from('settings').select('*'));
+        const settingsMap = {};
+        data.forEach(item => {
+            settingsMap[item.key] = item.value;
+        });
+        return settingsMap;
+    },
+    async saveSetting(key, value) {
+        return await handleSupabase(_supabase.from('settings').upsert({ key, value, updated_at: new Date() }));
+    },
+    async saveSettings(settingsObj) {
+        const promises = Object.entries(settingsObj).map(([key, value]) => {
+            return this.saveSetting(key, value);
+        });
+        return await Promise.all(promises);
+    },
+
+    // Shipping Rates
+    async getShippingRates() {
+        return await handleSupabase(_supabase.from('shipping_rates').select('*'));
+    },
+    async saveShippingRate(rate) {
+        return await handleSupabase(_supabase.from('shipping_rates').upsert(rate));
+    },
+    async saveShippingRates(rates) {
+        return await handleSupabase(_supabase.from('shipping_rates').upsert(rates));
+    },
+
+    // Reviews
+    async getReviews() {
+        return await handleSupabase(_supabase.from('reviews').select('*').order('created_at', { ascending: false }));
+    },
+    async saveReview(review) {
+        return await handleSupabase(_supabase.from('reviews').insert(review));
+    },
+    async updateReview(id, data) {
+        return await handleSupabase(_supabase.from('reviews').update(data).eq('id', id));
+    },
+    async deleteReview(id) {
+        return await handleSupabase(_supabase.from('reviews').delete().eq('id', id));
+    }
+};
+`;
+
+            const blob = new Blob([fileContent], { type: 'application/javascript;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'supabase-client.js';
+            link.click();
+            showToast('تم تحميل الملف! قم بنسخه إلى مجلد المتجر الجديد.');
+        }
+    </script>
+</body>
+</html>

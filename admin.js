@@ -1370,6 +1370,23 @@ async function deleteSocial(idx) {
 
 // ===== SETTINGS =====
 function loadSettings() {
+    // Dynamic Branding Propagation for Admin Panel
+    const storeName = settings.store.name || "Perex Store";
+    document.title = `${storeName} - لوحة التحكم`;
+    
+    const sidebarLogoImg = document.querySelector('.sidebar-logo img');
+    if (sidebarLogoImg && settings.store.logo) sidebarLogoImg.src = settings.store.logo;
+    
+    const loginLogoImg = document.querySelector('.login-logo');
+    if (loginLogoImg && settings.store.logo) loginLogoImg.src = settings.store.logo;
+    
+    const loginTitle = document.querySelector('.login-card p');
+    if (loginTitle) loginTitle.innerText = `${storeName} Admin`;
+    
+    if (settings.store.logo) {
+        document.querySelectorAll("link[rel*='icon']").forEach(link => link.href = settings.store.logo);
+    }
+
     document.getElementById('banner-title').value = settings.banner.title;
     document.getElementById('banner-desc').value = settings.banner.desc;
     document.getElementById('banner-cta').value = settings.banner.cta;
@@ -1977,6 +1994,94 @@ function importDatabase(input) {
             }
         };
         reader.readAsText(file);
+    }
+}
+
+async function cloneStore() {
+    const btn = document.getElementById('clone-store-btn');
+    const progress = document.getElementById('clone-progress');
+    
+    if (!btn || !progress) return;
+    
+    btn.disabled = true;
+    progress.style.display = 'block';
+    progress.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري استنشاق وتجميع ملفات المتجر...';
+
+    const filesToFetch = [
+        { path: 'index.html', type: 'text' },
+        { path: 'landing.html', type: 'text' },
+        { path: 'style.css', type: 'text' },
+        { path: 'script.js', type: 'text' },
+        { path: 'landing.js', type: 'text' },
+        { path: 'supabase-client.js', type: 'text', process: (content) => {
+            // Replace actual Supabase keys with placeholders for the cloned instance
+            return content.replace(
+                /const\s+SUPABASE_URL\s*=\s*['"]([^'"]+)['"]/,
+                "const SUPABASE_URL = 'YOUR_SUPABASE_URL';"
+            ).replace(
+                /const\s+SUPABASE_ANON_KEY\s*=\s*['"]([^'"]+)['"]/,
+                "const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';"
+            );
+        }},
+        { path: 'admin.html', type: 'text' },
+        { path: 'admin.css', type: 'text' },
+        { path: 'admin.js', type: 'text' },
+        { path: 'vercel.json', type: 'text' },
+        { path: 'setup.html', type: 'text' },
+        { path: 'prerx logo.jpeg', type: 'blob' },
+        { path: 'api/landing.js', type: 'text' }
+    ];
+
+    try {
+        if (typeof JSZip === 'undefined') {
+            throw new Error('مكتبة JSZip لم يتم تحميلها بعد، يرجى المحاولة بعد قليل.');
+        }
+
+        const zip = new JSZip();
+
+        for (const file of filesToFetch) {
+            progress.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> جاري قراءة وتجهيز: ${file.path}...`;
+            
+            const response = await fetch(file.path);
+            if (!response.ok) {
+                throw new Error(`فشل تحميل الملف: ${file.path}`);
+            }
+
+            let content;
+            if (file.type === 'blob') {
+                content = await response.blob();
+            } else {
+                content = await response.text();
+                if (file.process) {
+                    content = file.process(content);
+                }
+            }
+
+            zip.file(file.path, content);
+        }
+
+        progress.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري ضغط الملفات وتوليد ملف الـ ZIP...';
+        
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(zipBlob);
+        link.download = `perex_store_clone_${new Date().toISOString().split('T')[0]}.zip`;
+        link.click();
+
+        progress.innerHTML = '<i class="fa-solid fa-circle-check" style="color:var(--success);"></i> تم استنساخ المتجر وتحميل ملف الـ ZIP بنجاح!';
+        showToast('تم استنساخ المتجر وتحميل ملف الـ ZIP بنجاح!');
+        
+        setTimeout(() => {
+            btn.disabled = false;
+            progress.style.display = 'none';
+        }, 5000);
+
+    } catch (err) {
+        console.error(err);
+        progress.innerHTML = `<i class="fa-solid fa-circle-exclamation" style="color:var(--danger);"></i> فشل الاستنساخ: ${err.message}`;
+        showToast('حدث خطأ أثناء استنساخ المتجر', 'error');
+        btn.disabled = false;
     }
 }
 

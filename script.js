@@ -250,9 +250,16 @@ function applySettings() {
     // Store Identity (Name & Logo)
     if (settings.store.name) {
         document.querySelectorAll('.logo span').forEach(s => s.innerText = settings.store.name);
+        document.title = `${settings.store.name} - كل ما تحتاجه في مكان واحد`;
+        
+        const footerCopyright = document.querySelector('.footer-bottom p');
+        if (footerCopyright) {
+            footerCopyright.innerHTML = `&copy; ${new Date().getFullYear()} ${settings.store.name}. جميع الحقوق محفوظة.`;
+        }
     }
     if (settings.store.logo) {
-        document.querySelectorAll('.logo img, .menu-branding img').forEach(img => img.src = settings.store.logo);
+        document.querySelectorAll('.logo img, .menu-branding img, .loader-logo').forEach(img => img.src = settings.store.logo);
+        document.querySelectorAll("link[rel*='icon']").forEach(link => link.href = settings.store.logo);
     }
 
     renderFeatures();
@@ -509,9 +516,9 @@ function updateCartUI() {
     cartItems.forEach((item) => {
         container.innerHTML += `
             <div class="cart-item">
-                <img src="${item.images[0] || 'prerx logo.jpeg'}">
+                <img src="${item.images[0] || 'prerx logo.jpeg'}" onclick="window.location.href='landing.html?id=${item.id}'">
                 <div class="cart-item-info">
-                    <h4 class="cart-item-title">${item.name}</h4>
+                    <h4 class="cart-item-title" onclick="window.location.href='landing.html?id=${item.id}'">${item.name}</h4>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
                         <span class="cart-item-price">${item.price} ج.م</span>
                         <div class="qty-controls" style="display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.05); padding:5px 10px; border-radius:8px;">
@@ -520,7 +527,7 @@ function updateCartUI() {
                             <button onclick="changeQty(${item.id}, 1)" style="background:none; border:none; color:var(--primary-color); cursor:pointer;"><i class="fa-solid fa-plus"></i></button>
                         </div>
                     </div>
-                    <span class="remove-item" onclick="removeFromCart(${item.id})" style="margin-top:10px; display:inline-block; font-size:0.8rem; color:#ef4444;"><i class="fa-solid fa-trash"></i> إزالة</span>
+                    <span class="remove-item" onclick="removeFromCart(${item.id})" style="margin-top:10px; display:inline-block; font-size:0.8rem; color:#ef4444; cursor:pointer;"><i class="fa-solid fa-trash"></i> إزالة</span>
                 </div>
             </div>
         `;

@@ -146,7 +146,7 @@ label {
     position: fixed;
     top: 0;
     width: 100%;
-    z-index: 1000;
+    z-index: 10000;
     transition: var(--tr);
     padding: 15px 0;
 }
@@ -315,7 +315,8 @@ label {
 .hero-content .highlight {
     background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
     -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
 }
 
 .hero-content p {
@@ -655,6 +656,7 @@ label {
     margin-bottom: 15px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -877,7 +879,7 @@ label {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.5);
-    z-index: 1001;
+    z-index: 20000;
     display: none;
     opacity: 0;
     transition: opacity 0.3s;
@@ -896,7 +898,7 @@ label {
     max-width: 400px;
     height: 100vh;
     background: var(--card-bg);
-    z-index: 1002;
+    z-index: 20001;
     display: flex;
     flex-direction: column;
     transform: translateX(-100%);
@@ -961,6 +963,13 @@ label {
     height: 70px;
     object-fit: cover;
     border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+.cart-item img:hover {
+    transform: scale(1.05);
+    filter: brightness(1.1);
 }
 
 .cart-item-info {
@@ -973,6 +982,12 @@ label {
 .cart-item-title {
     font-size: 0.95rem;
     margin-bottom: 5px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.cart-item-title:hover {
+    color: var(--primary-color);
 }
 
 .cart-item-price {
@@ -1013,7 +1028,7 @@ label {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.8);
-    z-index: 2001;
+    z-index: 30000;
     display: none;
     opacity: 0;
     transition: opacity 0.3s;
@@ -1034,7 +1049,7 @@ label {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
-    z-index: 2002;
+    z-index: 30001;
     padding: 25px;
     box-shadow: var(--shadow);
     display: none;
@@ -1197,7 +1212,7 @@ label {
     .nav-links {
         position: fixed;
         top: 0;
-        left: -80%;
+        right: -85%;
         width: 80%;
         height: 100vh;
         background: var(--card-bg) !important;
@@ -1205,8 +1220,8 @@ label {
         padding: 80px 25px;
         gap: 10px;
         text-align: right;
-        transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        z-index: 99999;
+        transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 9999;
         pointer-events: none;
         visibility: hidden;
         overflow-y: auto;
@@ -1214,11 +1229,11 @@ label {
     }
     
     .nav-links.active {
-        left: 0;
+        right: 0;
         visibility: visible;
         pointer-events: auto;
-        border-right: 1px solid var(--border-color);
-        box-shadow: 15px 0 40px rgba(0,0,0,0.1);
+        border-left: 1px solid var(--border-color);
+        box-shadow: -15px 0 40px rgba(0,0,0,0.1);
     }
     
     .nav-links li {
@@ -1462,8 +1477,8 @@ label {
 
 @media (min-width: 769px) {
     .slider-nav-btn {
-        backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
     }
 }
 
@@ -1490,8 +1505,8 @@ label {
     z-index: 20;
     padding: 8px 16px;
     background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
     border-radius: 20px;
     border: 1px solid var(--border-color);
 }
@@ -1563,15 +1578,21 @@ html[dir="rtl"] .slider-overlay-text {
     width: 100%;
 }
 .variant-label {
-    display: block;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     font-size: 0.95rem;
     font-weight: bold;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     color: var(--text-color);
 }
 .variant-label .selected-val {
     color: var(--primary-color);
-    font-weight: normal;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
 }
 .variant-options {
     display: flex;
@@ -1579,44 +1600,96 @@ html[dir="rtl"] .slider-overlay-text {
     gap: 10px;
 }
 .variant-btn {
-    background: #ffffff;
+    background: var(--card-bg);
     border: 1px solid var(--border-color);
     color: var(--text-color);
-    padding: 8px 16px;
-    border-radius: 8px;
+    padding: 10px 18px;
+    border-radius: 12px;
     cursor: pointer;
     font-size: 0.9rem;
+    font-weight: 600;
     transition: var(--tr);
-    min-width: 60px;
+    min-width: 70px;
     text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+.color-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: inline-block;
+    border: 1px solid rgba(128, 128, 128, 0.25);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.12);
+    flex-shrink: 0;
+}
+.add-row-btn {
+    background: transparent;
+    border: 1.5px dashed var(--primary-color);
+    color: var(--primary-color);
+    padding: 8px 20px;
+    border-radius: 30px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    outline: none;
+}
+.add-row-btn:hover {
+    background: var(--primary-color);
+    color: #fff !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-color: var(--primary-color);
 }
 .variant-btn:hover {
     border-color: var(--primary-color);
-    background: rgba(0, 0, 0, 0.05);
+    color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 .variant-btn.active {
-    background: var(--primary-color);
-    color: #fff;
-    border-color: var(--primary-color);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    background: var(--primary-gradient) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+    font-weight: 700;
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
 }
 .variant-row-container {
-    background: transparent;
-    border: 1px solid var(--border-color);
-    padding: 15px;
-    border-radius: 12px;
-    margin-bottom: 15px;
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px dashed var(--border-color);
+    padding: 20px;
+    border-radius: 16px;
+    margin-bottom: 20px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
 }
 .variant-row-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid var(--border-color);
-    padding-bottom: 10px;
+    padding-bottom: 12px;
     margin-bottom: 5px;
+}
+.landing-qty-controls {
+    background: rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+}
+.landing-qty-controls button {
+    transition: transform 0.2s ease;
+}
+.landing-qty-controls button:hover {
+    transform: scale(1.2);
 }
 
 /* ===== Smart Offer System ===== */
@@ -1624,8 +1697,8 @@ html[dir="rtl"] .slider-overlay-text {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.55);
-    backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
     z-index: 10050;
     opacity: 0;
     visibility: hidden;
