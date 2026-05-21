@@ -469,7 +469,8 @@ function addToCart(id) {
     if (!p) return;
     
     if (p.has_colors || p.has_sizes) {
-        window.location.href = `landing.html?id=${id}`;
+        // Show notification instead of hard redirect
+        showVariantNotification(p);
         return;
     }
     
@@ -481,7 +482,7 @@ function addToCart(id) {
     }
     
     updateCartUI();
-    openCart();
+    showAddToCartNotification(p);
     
     // Pixel
     trackPixel('AddToCart', { content_ids: [p.id], content_name: p.name, value: p.price, currency: 'EGP' });
@@ -1273,4 +1274,119 @@ function copyOfferCoupon(el, code) {
         }, 2000);
     });
 }
+
+// ===== Cart Add Notification Functions =====
+let cartNotificationTimeout = null;
+
+function showAddToCartNotification(product) {
+    let container = document.getElementById('cart-notification');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'cart-notification';
+        container.className = 'cart-notification';
+        document.body.appendChild(container);
+    }
+    
+    container.innerHTML = `
+        <div class="cart-notification-progress"></div>
+        <div class="cart-notification-header">
+            <div class="cart-notification-title">
+                <span class="success-icon"><i class="fa-solid fa-circle-check"></i></span>
+                <span>تمت الإضافة إلى سلة التسوق</span>
+            </div>
+            <button class="cart-notification-close" onclick="closeCartNotification()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="cart-notification-body">
+            <div class="product-details-wrap">
+                <span class="product-name">${product.name}</span>
+                <span class="product-price">${product.price} ج.م</span>
+            </div>
+            <img class="product-img" src="${product.images[0] || 'prerx logo.jpeg'}" alt="${product.name}">
+        </div>
+        <div class="cart-notification-footer">
+            <button class="btn btn-primary" onclick="checkoutFromNotification()">إتمام الطلب <i class="fa-solid fa-receipt"></i></button>
+            <button class="btn btn-secondary" onclick="viewCartFromNotification()">عرض السلة <i class="fa-solid fa-cart-shopping"></i></button>
+        </div>
+    `;
+    
+    if (cartNotificationTimeout) {
+        clearTimeout(cartNotificationTimeout);
+    }
+    
+    container.classList.remove('active');
+    void container.offsetWidth; // Force reflow
+    container.classList.add('active');
+    
+    cartNotificationTimeout = setTimeout(() => {
+        closeCartNotification();
+    }, 6000);
+}
+
+function closeCartNotification() {
+    const container = document.getElementById('cart-notification');
+    if (container) {
+        container.classList.remove('active');
+    }
+    if (cartNotificationTimeout) {
+        clearTimeout(cartNotificationTimeout);
+        cartNotificationTimeout = null;
+    }
+}
+
+function checkoutFromNotification() {
+    closeCartNotification();
+    checkout();
+}
+
+// Function to safely open the cart sidebar
+function viewCartFromNotification() {
+    closeCartNotification();
+    openCart();
+}
+
+function showVariantNotification(product) {
+    let container = document.getElementById('cart-notification');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'cart-notification';
+        container.className = 'cart-notification';
+        document.body.appendChild(container);
+    }
+    
+    container.innerHTML = `
+        <div class="cart-notification-progress" style="background: var(--primary-color);"></div>
+        <div class="cart-notification-header">
+            <div class="cart-notification-title">
+                <span class="success-icon" style="color: var(--primary-color);"><i class="fa-solid fa-sliders"></i></span>
+                <span>اختر المواصفات أولاً</span>
+            </div>
+            <button class="cart-notification-close" onclick="closeCartNotification()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="cart-notification-body">
+            <div class="product-details-wrap">
+                <span class="product-name">${product.name}</span>
+                <span style="font-size:0.85rem; color: var(--muted-color);">يحتوي هذا المنتج على ${product.has_colors && product.has_sizes ? 'ألوان ومقاسات' : product.has_colors ? 'ألوان' : 'مقاسات'} متعددة</span>
+            </div>
+            <img class="product-img" src="${product.images[0] || 'prerx logo.jpeg'}" alt="${product.name}">
+        </div>
+        <div class="cart-notification-footer">
+            <button class="btn btn-primary" onclick="closeCartNotification(); window.location.href='landing.html?id=${product.id}'">اختر المواصفات <i class="fa-solid fa-arrow-left"></i></button>
+            <button class="btn btn-secondary" onclick="closeCartNotification()">إلغاء</button>
+        </div>
+    `;
+    
+    if (cartNotificationTimeout) clearTimeout(cartNotificationTimeout);
+    container.classList.remove('active');
+    void container.offsetWidth;
+    container.classList.add('active');
+    
+    cartNotificationTimeout = setTimeout(() => closeCartNotification(), 6000);
+}
+
+// Expose functions globally for dynamic elements
+window.showAddToCartNotification = showAddToCartNotification;
+window.showVariantNotification = showVariantNotification;
+window.closeCartNotification = closeCartNotification;
+window.checkoutFromNotification = checkoutFromNotification;
+window.viewCartFromNotification = viewCartFromNotification;
 
