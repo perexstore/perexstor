@@ -7,6 +7,8 @@ const CACHE_TTL = 300000; // 5 minutes in ms
 
 // State
 let isFreshDataLoaded = false;
+let isSettingsFetchSuccessful = false;
+let isProductsFetchSuccessful = false;
 let appliedCoupon = null;
 let currentProductPrice = 0; // Stored globally so updateLandingTotal works without args
 let currentProduct = null;
@@ -88,8 +90,14 @@ async function initData() {
 
         const [s, p, ship, coup] = fetchResults.map(r => r.status === 'fulfilled' ? r.value : null);
 
-        if (s) settings = s;
-        if (p) products = p;
+        if (s) {
+            settings = s;
+            isSettingsFetchSuccessful = true;
+        }
+        if (p) {
+            products = p;
+            isProductsFetchSuccessful = true;
+        }
         if (ship) shippingRates = ship;
         if (coup) coupons = coup;
 
@@ -330,7 +338,7 @@ function loadProduct() {
     if (p) currentProductPrice = p.price; // Store for use by updateLandingTotal
 
     if (!p) {
-        if (isFreshDataLoaded) {
+        if (isFreshDataLoaded && isProductsFetchSuccessful) {
             document.getElementById('landing-content').innerHTML = '<div style="grid-column: 1/-1; text-align: center;"><h2>المنتج غير موجود</h2><a href="index.html" class="btn btn-primary">العودة للمتجر</a></div>';
         }
         return;
@@ -340,7 +348,7 @@ function loadProduct() {
     const activePages = settings.active_landing_pages || [];
     const isPageActive = activePages.includes(id) || activePages.includes(id.toString());
     if (!isPageActive) {
-        if (isFreshDataLoaded) {
+        if (isFreshDataLoaded && isSettingsFetchSuccessful) {
             console.log("Landing page is not manually active, redirecting to product details page instead.");
             window.location.replace(`product.html?id=${id}`);
         }

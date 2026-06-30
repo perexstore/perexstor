@@ -87,14 +87,36 @@ export default async function handler(req, res) {
     }
 
     try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/products?id=eq.${id}&select=*&limit=1`, {
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-            }
-        });
+        // Fetch product and settings in parallel to check if the landing page is active
+        const [productRes, settingsRes] = await Promise.all([
+            fetch(`${SUPABASE_URL}/rest/v1/products?id=eq.${id}&select=*&limit=1`, {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                }
+            }),
+            fetch(`${SUPABASE_URL}/rest/v1/settings?key=eq.active_landing_pages&select=value`, {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                }
+            })
+        ]);
 
-        const products = await response.json();
+        const products = await productRes.json();
+        const settingsData = await settingsRes.json();
+
+        let activePages = [];
+        if (settingsData && settingsData.length > 0 && Array.isArray(settingsData[0].value)) {
+            activePages = settingsData[0].value;
+        }
+
+        // Server-side redirect if the landing page is not active for this product
+        const isPageActive = activePages.includes(Number(id)) || activePages.includes(String(id));
+        if (!isPageActive) {
+            res.setHeader('Location', `/product.html?id=${id}`);
+            return res.status(302).end();
+        }
         
         if (products && products.length > 0) {
             const product = products[0];
