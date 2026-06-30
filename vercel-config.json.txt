@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "public": true,
   "name": "perex-store",
   "rewrites": [
     { "source": "/admin", "destination": "/admin.html" },
