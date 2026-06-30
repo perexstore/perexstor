@@ -9,10 +9,14 @@ const path = require('path');
 
 // Fallback image if product has no images
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1601593346740-925612772716?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80';
-const BASE_URL = 'https://perexstore.com'; // Ensure HTTPS
 
 export default async function handler(req, res) {
     const { id } = req.query;
+
+    // Determine dynamic base URL based on headers
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
+    const host = req.headers['x-forwarded-host'] || req.headers.host || 'perexstore.com';
+    const BASE_URL = `${protocol}://${host}`;
 
     // Load the raw HTML file from the project root
     const filePath = path.join(process.cwd(), 'landing.html');
@@ -94,32 +98,63 @@ export default async function handler(req, res) {
         
         if (products && products.length > 0) {
             const product = products[0];
-            if (product.images && Array.isArray(product.images)) {
-                product.images = product.images.map(img => {
+            
+            // Extract and parse images array robustly
+            let imagesArray = [];
+            if (product.images) {
+                if (Array.isArray(product.images)) {
+                    imagesArray = product.images;
+                } else if (typeof product.images === 'string') {
+                    try {
+                        imagesArray = JSON.parse(product.images);
+                    } catch (e) {
+                        try {
+                            if (product.images.trim().startsWith('http') || product.images.trim().startsWith('/')) {
+                                imagesArray = [product.images.trim()];
+                            }
+                        } catch (err) {}
+                    }
+                }
+            }
+
+            if (Array.isArray(imagesArray)) {
+                imagesArray = imagesArray.map(img => {
                     if (typeof img === 'string') {
                         try {
                             const parsed = JSON.parse(img);
                             if (parsed && typeof parsed === 'object' && parsed.url) {
-                                return parsed;
+                                return parsed.url;
                             }
                         } catch (e) {}
+                        return img;
+                    } else if (img && typeof img === 'object' && img.url) {
+                        return img.url;
                     }
                     return img;
                 });
             }
+
+            let image = (imagesArray && imagesArray.length > 0) ? imagesArray[0] : FALLBACK_IMAGE;
+            if (typeof image !== 'string') {
+                image = FALLBACK_IMAGE;
+            }
+
+            // Ensure image is an absolute URL and secure (https)
+            if (image && typeof image === 'string') {
+                if (image.startsWith('http://')) {
+                    image = image.replace('http://', 'https://');
+                } else if (!image.startsWith('http')) {
+                    if (!image.startsWith('/')) image = '/' + image;
+                    image = BASE_URL + image;
+                }
+            }
+
             const title = product.name ? `${product.name} - ${storeName}` : storeName;
             
             // Clean description (remove HTML tags if any and truncate)
-            let rawDesc = product.description || `تسوق هذا Connor المنتج المميز من ${storeName}.`;
+            let rawDesc = product.description || `تسوق هذا المنتج المميز من ${storeName}.`;
             rawDesc = rawDesc.replace(/<[^>]*>?/gm, ''); // Strip HTML tags
             const description = rawDesc.length > 160 ? rawDesc.substring(0, 157) + '...' : rawDesc;
-            
-            let image = (product.images && product.images.length > 0) ? (typeof product.images[0] === 'string' ? product.images[0] : (product.images[0].url || FALLBACK_IMAGE)) : FALLBACK_IMAGE;
-            // Ensure image is an absolute URL
-            if (image && typeof image === 'string' && !image.startsWith('http')) {
-                if (!image.startsWith('/')) image = '/' + image;
-                image = BASE_URL + image;
-            }
             
             const price = product.price || 0;
             const stockStatus = (product.stock > 0 || product.stock === undefined) ? 'instock' : 'outofstock';
