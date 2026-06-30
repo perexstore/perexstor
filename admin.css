@@ -313,3 +313,382 @@ textarea.form-control{resize:vertical;min-height:90px;}
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+/* === NEW DASHBOARD / ANALYTICS SYSTEM STYLES === */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.kpi-card {
+  background: var(--cb);
+  border-radius: 16px;
+  border: 1px solid var(--bo);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: var(--tr);
+}
+.kpi-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--pr);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+}
+.kpi-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+.kpi-body {
+  flex: 1;
+}
+.kpi-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.kpi-label {
+  color: var(--mu);
+  font-size: 0.8rem;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* Color theme mappings for KPI cards */
+.kpi-blue .kpi-icon { background: rgba(14, 165, 233, 0.15); color: var(--pr); }
+.kpi-green .kpi-icon { background: rgba(34, 197, 94, 0.15); color: var(--su); }
+.kpi-purple .kpi-icon { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
+.kpi-orange .kpi-icon { background: rgba(249, 115, 22, 0.15); color: #f97316; }
+.kpi-teal .kpi-icon { background: rgba(20, 184, 166, 0.15); color: #14b8a6; }
+.kpi-pink .kpi-icon { background: rgba(236, 72, 153, 0.15); color: #ec4899; }
+.kpi-indigo .kpi-icon { background: rgba(99, 102, 241, 0.15); color: #6366f1; }
+.kpi-yellow .kpi-icon { background: rgba(234, 179, 8, 0.15); color: #eab308; }
+.kpi-cyan .kpi-icon { background: rgba(6, 182, 212, 0.15); color: #06b6d4; }
+.kpi-red .kpi-icon { background: rgba(239, 68, 68, 0.15); color: var(--da); }
+.kpi-emerald .kpi-icon { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+.kpi-violet .kpi-icon { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; }
+.kpi-rose .kpi-icon { background: rgba(244, 63, 94, 0.15); color: #f43f5e; }
+.kpi-amber .kpi-icon { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.kpi-lime .kpi-icon { background: rgba(132, 204, 22, 0.15); color: #84cc16; }
+.kpi-darkred .kpi-icon { background: rgba(220, 38, 38, 0.15); color: #dc2626; }
+
+/* Filter Bar */
+.dash-filter-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  background: var(--cb);
+  padding: 12px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--bo);
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.dash-filter-btn {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--bo);
+  color: var(--tx);
+  padding: 8px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: var(--tr);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.dash-filter-btn:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: var(--mu);
+}
+.dash-filter-btn.active {
+  background: var(--pr);
+  border-color: var(--pr);
+  color: #fff;
+}
+.dash-custom-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: auto;
+}
+
+@media(max-width: 768px) {
+  .dash-custom-range {
+    margin-right: 0;
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* SVG Chart styling */
+.svg-chart-line {
+  stroke: var(--pr);
+  stroke-width: 3;
+  fill: none;
+  stroke-linecap: round;
+}
+.svg-chart-area {
+  fill: url(#area-grad);
+  opacity: 0.15;
+}
+.svg-chart-bar {
+  fill: var(--sc);
+  rx: 4;
+  transition: var(--tr);
+}
+.svg-chart-bar:hover {
+  fill: var(--pr);
+}
+.svg-chart-grid {
+  stroke: var(--bo);
+  stroke-width: 1;
+  stroke-dasharray: 4,4;
+}
+.svg-chart-axis {
+  stroke: var(--bo);
+  stroke-width: 1.5;
+}
+.svg-chart-text {
+  fill: var(--mu);
+  font-size: 10px;
+  font-family: inherit;
+}
+.svg-chart-tooltip {
+  position: absolute;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid var(--pr);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #fff;
+  font-size: 0.8rem;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  display: none;
+  transform: translate(-50%, -100%);
+  margin-top: -10px;
+  white-space: nowrap;
+}
+
+/* Donut Chart styling */
+.donut-slice {
+  fill: none;
+  stroke-width: 18;
+  transition: stroke-dashoffset 0.5s ease;
+  cursor: pointer;
+}
+.donut-slice:hover {
+  stroke-width: 21;
+}
+.donut-center {
+  fill: none;
+}
+.chart-status-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+}
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Print CSS */
+@media print {
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .sidebar, .top-bar, .page-header button, .dash-filter-bar, .toast-container {
+    display: none !important;
+  }
+  .main-content {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .content-area {
+    padding: 0 !important;
+  }
+  .tab-section {
+    display: none !important;
+  }
+  .tab-section#tab-dashboard {
+    display: block !important;
+  }
+  .card {
+    border: 1px solid #e2e8f0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    margin-bottom: 20px !important;
+    page-break-inside: avoid;
+  }
+  .card-header {
+    border-bottom: 1px solid #e2e8f0 !important;
+    color: #000 !important;
+  }
+  .kpi-card {
+    border: 1px solid #e2e8f0 !important;
+    background: #f8fafc !important;
+    color: #000 !important;
+    page-break-inside: avoid;
+  }
+  .kpi-icon {
+    border: 1px solid #cbd5e1 !important;
+  }
+  .svg-chart-grid {
+    stroke: #e2e8f0 !important;
+  }
+  .svg-chart-text {
+    fill: #64748b !important;
+  }
+}
+
+/* Shipping Integration Styles */
+.carrier-card {
+  transition: var(--tr);
+}
+.carrier-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+}
+.shipping-tabs-nav button {
+  transition: var(--tr);
+}
+.shipping-tabs-nav button.active {
+  background: var(--pr);
+  color: #fff;
+  border-color: var(--pr);
+}
+
+/* Waybill Layout (A6 Thermal/Standard) */
+.waybill-box {
+  width: 100%;
+  max-width: 480px;
+  background: #ffffff;
+  color: #000000;
+  border: 2px solid #000000;
+  padding: 15px;
+  font-family: 'Tajawal', sans-serif;
+  direction: rtl;
+  text-align: right;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.waybill-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px dashed #000000;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+}
+.waybill-logo {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #000000;
+}
+.waybill-carrier {
+  font-size: 1.1rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border: 2px solid #000000;
+  text-transform: uppercase;
+}
+.waybill-barcode-section {
+  text-align: center;
+  padding: 12px 0;
+  border-bottom: 2px dashed #000000;
+  margin-bottom: 12px;
+}
+.waybill-barcode-placeholder {
+  font-family: monospace;
+  font-size: 1.8rem;
+  letter-spacing: 6px;
+  font-weight: bold;
+  margin: 5px 0;
+  display: inline-block;
+  border: 1px solid #000000;
+  padding: 5px 15px;
+  background: #f1f5f9;
+}
+.waybill-qr-code {
+  width: 70px;
+  height: 70px;
+  border: 1px solid #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  text-align: center;
+}
+.waybill-details-section {
+  border-bottom: 2px dashed #000000;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+}
+.waybill-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 0.95rem;
+}
+.waybill-label {
+  font-weight: bold;
+  color: #333333;
+}
+.waybill-value {
+  font-weight: 500;
+}
+.waybill-footer {
+  text-align: center;
+  font-size: 0.8rem;
+  margin-top: 10px;
+  color: #555555;
+  border-top: 1px solid #eeeeee;
+  padding-top: 8px;
+}
+.waybill-cod-badge {
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: #000000;
+  border: 3px solid #000000;
+  padding: 6px 14px;
+  text-align: center;
+  margin-top: 10px;
+  display: inline-block;
+  background: transparent;
+}
+
+/* Styles for when printing only the waybill box */
+@media print {
+  body.printing-waybill {
+    background: white !important;
+  }
+  body.printing-waybill #admin-panel,
+  body.printing-waybill .modal-overlay,
+  body.printing-waybill #toast-container {
+    display: none !important;
+  }
+  body.printing-waybill .waybill-box {
+    border: none !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}
+
+

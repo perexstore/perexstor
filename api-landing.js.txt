@@ -94,6 +94,19 @@ export default async function handler(req, res) {
         
         if (products && products.length > 0) {
             const product = products[0];
+            if (product.images && Array.isArray(product.images)) {
+                product.images = product.images.map(img => {
+                    if (typeof img === 'string') {
+                        try {
+                            const parsed = JSON.parse(img);
+                            if (parsed && typeof parsed === 'object' && parsed.url) {
+                                return parsed;
+                            }
+                        } catch (e) {}
+                    }
+                    return img;
+                });
+            }
             const title = product.name ? `${product.name} - ${storeName}` : storeName;
             
             // Clean description (remove HTML tags if any and truncate)
@@ -101,9 +114,9 @@ export default async function handler(req, res) {
             rawDesc = rawDesc.replace(/<[^>]*>?/gm, ''); // Strip HTML tags
             const description = rawDesc.length > 160 ? rawDesc.substring(0, 157) + '...' : rawDesc;
             
-            let image = (product.images && product.images.length > 0) ? product.images[0] : FALLBACK_IMAGE;
+            let image = (product.images && product.images.length > 0) ? (typeof product.images[0] === 'string' ? product.images[0] : (product.images[0].url || FALLBACK_IMAGE)) : FALLBACK_IMAGE;
             // Ensure image is an absolute URL
-            if (image && !image.startsWith('http')) {
+            if (image && typeof image === 'string' && !image.startsWith('http')) {
                 if (!image.startsWith('/')) image = '/' + image;
                 image = BASE_URL + image;
             }

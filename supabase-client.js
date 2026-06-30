@@ -37,7 +37,25 @@ async function handleSupabase(promise) {
 const SupabaseService = {
     // Products
     async getProducts() {
-        return await handleSupabase(_supabase.from('products').select('*').order('created_at', { ascending: false }));
+        const data = await handleSupabase(_supabase.from('products').select('*').order('created_at', { ascending: false }));
+        if (data && Array.isArray(data)) {
+            data.forEach(p => {
+                if (p.images && Array.isArray(p.images)) {
+                    p.images = p.images.map(img => {
+                        if (typeof img === 'string') {
+                            try {
+                                const parsed = JSON.parse(img);
+                                if (parsed && typeof parsed === 'object' && parsed.url) {
+                                    return parsed;
+                                }
+                            } catch (e) {}
+                        }
+                        return img;
+                    });
+                }
+            });
+        }
+        return data;
     },
     async saveProduct(product) {
         if (product.id && !isNaN(product.id)) {
@@ -87,8 +105,10 @@ const SupabaseService = {
             const timestampSlice = Date.now().toString().slice(-7); 
             const randomSuffix = Math.floor(Math.random() * 100).toString().padStart(2, '0');
             order.id = parseInt(timestampSlice + randomSuffix);
+            return await handleSupabase(_supabase.from('orders').insert(order).select().single());
+        } else {
+            return await handleSupabase(_supabase.from('orders').update(order).eq('id', order.id).select().single());
         }
-        return await handleSupabase(_supabase.from('orders').upsert(order).select().single());
     },
     async updateOrderStatus(id, status) {
         return await handleSupabase(_supabase.from('orders').update({ status }).eq('id', id));
@@ -139,5 +159,15 @@ const SupabaseService = {
     },
     async deleteReview(id) {
         return await handleSupabase(_supabase.from('reviews').delete().eq('id', id));
+    },
+    async uploadFile(bucket, path, file) {
+        if (!_supabase) throw new Error('Supabase client not initialized.');
+        const { data, error } = await _supabase.storage.from(bucket).upload(path, file, {
+            cacheControl: '3600',
+            upsert: true
+        });
+        if (error) throw error;
+        const { data: urlData } = _supabase.storage.from(bucket).getPublicUrl(path);
+        return urlData ? urlData.publicUrl : null;
     }
 };

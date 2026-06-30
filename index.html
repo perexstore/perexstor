@@ -86,6 +86,9 @@
             </nav>
 
             <div class="nav-icons">
+                <div class="search-trigger" id="search-trigger" title="بحث">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </div>
                 <div class="cart-icon" id="cart-icon">
                     <i class="fa-solid fa-cart-shopping"></i>
                     <span class="cart-count">0</span>
@@ -99,6 +102,27 @@
 
     <!-- Mobile Menu Overlay -->
     <div class="menu-overlay" id="menu-overlay"></div>
+
+    <!-- Smart Search Panel -->
+    <div class="search-overlay" id="search-overlay">
+        <div class="search-panel">
+            <div class="search-header">
+                <div class="search-input-wrap">
+                    <i class="fa-solid fa-magnifying-glass search-icon-inner"></i>
+                    <input type="text" id="smart-search-input" placeholder="ابحث عن منتج، وصف، أو فئة..." autocomplete="off">
+                    <button class="search-clear" id="search-clear" style="display:none;"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <button class="search-close-btn" id="search-close-btn"><i class="fa-solid fa-xmark"></i> إغلاق</button>
+            </div>
+            <div class="search-results-info" id="search-results-info"></div>
+            <div class="search-results-grid" id="search-results-grid">
+                <div class="search-empty-state">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <p>ابدأ بكتابة اسم المنتج أو الفئة</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Hero Section -->
     <section class="hero" id="home">
@@ -256,7 +280,15 @@
             </div>
             
             <div class="footer-bottom">
-                <p>&copy; 2026 Perex Store. جميع الحقوق محفوظة.</p>
+                <p class="copyright">&copy; 2026 Perex Store. جميع الحقوق محفوظة.</p>
+                <div class="developer-credit">
+                    Designed & Developed by <a href="https://github.com/AhmedAlselemani" target="_blank" class="developer-link"><i class="fa-solid fa-code"></i> Ahmed Alselemani</a>
+                </div>
+                <div class="payment-methods">
+                    <i class="fa-brands fa-cc-visa" title="Visa"></i>
+                    <i class="fa-brands fa-cc-mastercard" title="Mastercard"></i>
+                    <i class="fa-solid fa-money-bill-wave" title="الدفع عند الاستلام"></i>
+                </div>
             </div>
         </div>
     </footer>
@@ -269,34 +301,30 @@
             <button class="close-cart" id="close-cart"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="cart-items" id="cart-items">
-            <p class="empty-cart-msg">السلة فارغة حالياً</p>
+            <!-- Injected by script.js -->
         </div>
         <div class="cart-footer">
-            <div class="form-group coupon-group" style="margin-bottom: 15px;">
-                <label style="font-size: 0.85rem; margin-bottom: 5px; display: block; color: var(--primary-color);">كود الخصم:</label>
-                <div style="display: flex; gap: 8px;">
-                    <input type="text" id="coupon-input" class="review-input" placeholder="ادخل الكود هنا..." style="padding: 8px;">
-                    <button class="btn btn-primary" onclick="applyCoupon()" style="padding: 8px 15px; border-radius: 10px; font-size: 0.8rem;">تطبيق</button>
-                </div>
-                <div id="coupon-msg" style="font-size: 0.75rem; margin-top: 5px;"></div>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 15px;">
-                <label style="font-size: 0.9rem; margin-bottom: 5px; display: block; color: var(--primary-color);">اختر محافظتك:</label>
-                <select id="cart-gov" class="review-input" onchange="calculateCartTotal()" style="padding: 8px;">
-                    <option value="" disabled selected>اختر المحافظة...</option>
-                </select>
-            </div>
-            <div class="cart-total" style="font-size: 0.95rem; margin-bottom: 5px;">
-                <span>المنتجات:</span>
+            <div class="cart-subtotal" style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span>قيمة المنتجات:</span>
                 <span id="cart-subtotal-price">0 ج.م</span>
             </div>
-            <div class="cart-total" id="cart-discount-row" style="font-size: 0.95rem; margin-bottom: 5px; color: #ef4444; display: none;">
-                <span>الخصم:</span>
+            
+            <div class="cart-coupon-wrap" style="margin-bottom: 15px; display: flex; gap: 8px;">
+                <input type="text" id="coupon-input" placeholder="كود الخصم..." class="review-input" style="flex:1; padding:8px 12px; border-radius:8px; font-size:0.9rem;">
+                <button class="btn btn-primary" onclick="applyCoupon()" style="padding: 8px 15px; font-size:0.9rem;">تطبيق</button>
+            </div>
+            <div id="coupon-msg" style="font-size: 0.85rem; margin-top: -10px; margin-bottom: 10px; font-weight: bold;"></div>
+
+            <div class="cart-discount" id="cart-discount-row" style="display: none; justify-content: space-between; margin-bottom: 5px; color: #ef4444;">
+                <span>قيمة الخصم الكوبون:</span>
                 <span id="cart-discount-price">0 ج.م</span>
             </div>
-            <div class="cart-total" style="font-size: 0.95rem; margin-bottom: 10px;">
-                <span>الشحن:</span>
+
+            <div class="cart-shipping" style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span>مصاريف الشحن:</span>
+                <select id="cart-gov" class="review-input" onchange="calculateCartTotal()" style="width: 140px; padding: 2px 8px; font-size: 0.85rem;">
+                    <option value="" disabled selected>اختر محافظتك...</option>
+                </select>
                 <span id="cart-shipping-price">0 ج.م</span>
             </div>
             <div class="cart-total">
@@ -308,7 +336,7 @@
             </div>
             <div style="display: flex; gap: 10px;">
                 <button class="btn btn-secondary" onclick="closeCart()" style="flex: 1; padding: 12px;">إكمال التسوق</button>
-                <button class="btn btn-primary checkout-btn" onclick="checkout()" style="flex: 2; padding: 12px;">إتمام الطلب</button>
+                <button class="btn btn-primary checkout-btn" onclick="checkout()" style="flex: 2; padding: 12px;">إتمم الطلب</button>
             </div>
         </div>
     </div>

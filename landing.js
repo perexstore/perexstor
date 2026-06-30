@@ -2,6 +2,7 @@ let products = [];
 let settings = {};
 let shippingRates = [];
 let coupons = [];
+let allReviews = [];
 const CACHE_TTL = 300000; // 5 minutes in ms
 
 // State
@@ -9,6 +10,7 @@ let appliedCoupon = null;
 let currentProductPrice = 0; // Stored globally so updateLandingTotal works without args
 let currentProduct = null;
 let landingVariantRows = [];
+let countdownInterval = null;
 
 function generateStarRating(rating) {
     let stars = '';
@@ -28,6 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await initData();
     applySettings();
     loadProduct();
+    setupStickyCTA();
 });
 
 async function fetchWithCache(key, fetchFn, onCacheHit) {
@@ -88,6 +91,9 @@ async function initData() {
         if (p) products = p;
         if (ship) shippingRates = ship;
         if (coup) coupons = coup;
+
+        // Fetch reviews (non-blocking)
+        try { allReviews = await SupabaseService.getReviews(); } catch(e) {}
 
         // Save to cache
         const freshData = { settings: s, products: p, shipping: ship, coupons: coup };
@@ -295,11 +301,19 @@ function applySettings() {
     if (settings.store && settings.store.pixel) {
         initPixel(settings.store.pixel);
     }
+    // TikTok Pixel Initialization
+    if (settings.store && settings.store.tiktokPixel) {
+        initTikTokPixel(settings.store.tiktokPixel);
+    }
 
     // Store Identity
     if (settings.store.name) {
         document.querySelectorAll('.logo span').forEach(s => s.innerText = settings.store.name);
         document.title = `${settings.store.name} - صفحة المنتج`;
+        const footerCopyright = document.querySelector('.landing-footer .copyright');
+        if (footerCopyright) {
+            footerCopyright.innerHTML = `&copy; ${new Date().getFullYear()} ${settings.store.name}. جميع الحقوق محفوظة.`;
+        }
     }
     if (settings.store.logo) {
         document.querySelectorAll('.logo img, .loader-logo').forEach(img => img.src = settings.store.logo);
@@ -318,81 +332,241 @@ function loadProduct() {
         return;
     }
 
-    // Pixel ViewContent
+    // Safety check: is this landing page manually active?
+    const activePages = settings.active_landing_pages || [];
+    const isPageActive = activePages.includes(id) || activePages.includes(id.toString());
+    if (!isPageActive) {
+        console.log("Landing page is not manually active, redirecting to product details page instead.");
+        window.location.replace(`product.html?id=${id}`);
+        return;
+    }
+
+    // Pixel ViewContent (Facebook)
     const pixelId = (settings.store && settings.store.pixel) || p.pixel_id;
     if (pixelId) {
         initPixel(pixelId);
         if (window.fbq) fbq('track', 'ViewContent', { content_ids: [p.id], content_name: p.name, value: p.price, currency: 'EGP' });
+    }
+    // TikTok ViewContent
+    if (settings.store && settings.store.tiktokPixel) {
+        if (window.ttq) {
+            window.ttq.track('ViewContent', { content_id: String(p.id), content_name: p.name, value: p.price, currency: 'EGP' });
+        }
     }
 
     currentProduct = p;
     document.title = `${p.name} - ${(settings.store && settings.store.name) || 'Perex Store'}`;
     landingVariantRows = [{ id: Date.now(), color: '', size: '', qty: 1 }];
 
+    // Calculate discount
+    const discountPct = p.old_price ? Math.round(((p.old_price - p.price) / p.old_price) * 100) : 0;
+    const firstImgUrl = typeof p.images[0] === 'string' ? p.images[0] : (p.images[0]?.url || 'prerx logo.jpeg');
+    const storeName = (settings.store && settings.store.name) || 'Perex Store';
+
+    // Show urgency strip
+    const urgencyStrip = document.getElementById('urgency-strip');
+    if (urgencyStrip) urgencyStrip.style.display = 'flex';
+
+    // Sticky CTA data
+    const stickyCTAName = document.getElementById('sticky-cta-name');
+    const stickyCTAPrice = document.getElementById('sticky-cta-price');
+    if (stickyCTAName) stickyCTAName.textContent = p.name;
+    if (stickyCTAPrice) stickyCTAPrice.textContent = p.price + ' ج.م';
+
+    // Live viewers count (simulated, realistic feel)
+    const liveCount = Math.floor(Math.random() * 20) + 8;
+
+    // Sold count (simulated)
+    const soldCount = Math.floor(Math.random() * 80) + 40;
+
     const container = document.getElementById('landing-content');
+    container.className = 'lp-hero';
     container.innerHTML = `
-        <div class="product-gallery">
-            <div class="main-img-wrap">
-                <img src="${p.images[0]}" id="main-img" style="width:100%" decoding="async">
+        <!-- ===== GALLERY COLUMN ===== -->
+        <div class="lp-gallery">
+            <div class="lp-main-img-wrap">
+                <img src="${firstImgUrl}" id="main-img" alt="${p.name}" decoding="async">
+                ${discountPct > 0 ? `<div class="lp-discount-badge">خصم ${discountPct}%</div>` : ''}
             </div>
+
             ${p.images.length > 1 ? `
-                <div style="display:flex;gap:10px;margin-top:15px;overflow-x:auto;padding-bottom:10px;">
-                    ${p.images.map(img => `<img src="${img}" style="width:80px;height:80px;border-radius:10px;cursor:pointer;border:2px solid transparent" onclick="document.getElementById('main-img').src='${img}'" decoding="async">`).join('')}
+                <div class="lp-thumbs" id="lp-thumbs-strip">
+                    ${p.images.map((img, idx) => {
+                        const url = typeof img === 'string' ? img : (img.url || 'prerx logo.jpeg');
+                        return `<div class="lp-thumb ${idx === 0 ? 'active' : ''}" onclick="lpSwitchImg('${url}', this)">
+                            <img src="${url}" alt="صورة ${idx+1}" decoding="async">
+                        </div>`;
+                    }).join('')}
                 </div>
             ` : ''}
+
+            <!-- Trust badges -->
+            <div class="lp-trust-row">
+                <div class="lp-trust-item">
+                    <i class="fa-solid fa-truck-fast" style="color:#38bdf8;"></i>
+                    <span>شحن سريع</span>
+                </div>
+                <div class="lp-trust-item">
+                    <i class="fa-solid fa-money-bill-wave" style="color:#22c55e;"></i>
+                    <span>الدفع عند الاستلام</span>
+                </div>
+                <div class="lp-trust-item">
+                    <i class="fa-solid fa-shield-halved" style="color:#a78bfa;"></i>
+                    <span>ضمان الجودة</span>
+                </div>
+            </div>
         </div>
-        <div class="product-details">
-            <h1 style="font-size:2.5rem;font-weight:800;margin-bottom:5px;">${p.name}</h1>
-            <div style="color: #fbbf24; font-size: 1.2rem; margin-bottom: 15px;">
-                ${generateStarRating(p.rating || 5)}
-            </div>
-            <div class="price-tag">
-                <span class="new">${p.price} ج.م</span>
-                ${p.old_price ? `<span class="old">${p.old_price} ج.م</span>` : ''}
-            </div>
-            <p style="color:#94a3b8;font-size:1.1rem;line-height:1.8">${p.description || 'لا يوجد وصف متاح حالياً.'}</p>
-            
-            <ul class="features-list">
-                <li><i class="fa-solid fa-circle-check"></i> شحن سريع لباب المنزل</li>
-                <li><i class="fa-solid fa-circle-check"></i> الدفع عند الاستلام</li>
-                <li><i class="fa-solid fa-circle-check"></i> ضمان جودة PereX</li>
-            </ul>
 
-            <div class="landing-checkout">
-                <h3 style="margin-bottom:20px;">اطلب الآن وسيتصل بك فريقنا</h3>
-                <div id="variants-container" style="margin-bottom: 20px;"></div>
+        <!-- ===== DETAILS COLUMN ===== -->
+        <div class="lp-details">
+            <div class="lp-category-pill">
+                <i class="fa-solid fa-bolt"></i>
+                عرض خاص محدود
+            </div>
+
+            <h1 class="lp-product-title">${p.name}</h1>
+
+            <!-- Live badge -->
+            <div class="lp-live-badge">
+                <span class="lp-live-dot"></span>
+                <span>${liveCount} شخص يشاهد هذا المنتج الآن</span>
+            </div>
+
+            <!-- Sold Badge -->
+            <div class="lp-sold-badge">
+                <i class="fa-solid fa-fire"></i>
+                <span>تم بيع ${soldCount}+ وحدة من هذا المنتج</span>
+                <i class="fa-solid fa-chart-line"></i>
+            </div>
+
+            <div class="lp-stars-row">
+                <div class="lp-stars">${generateStarRating(p.rating || 5)}</div>
+                <span class="lp-reviews-count">(${Math.floor(Math.random()*50)+15}+ تقييم)</span>
+            </div>
+
+            <!-- Price -->
+            <div class="lp-price-block">
+                <span class="lp-price-new">${p.price} ج.م</span>
+                ${p.old_price ? `<span class="lp-price-old">${p.old_price} ج.م</span>` : ''}
+                ${discountPct > 0 ? `<span class="lp-price-save">وفّر ${p.old_price - p.price} ج.م</span>` : ''}
+            </div>
+
+            <!-- Description -->
+            ${p.description ? `<p class="lp-desc">${p.description}</p>` : ''}
+
+            <!-- Countdown Timer -->
+            <div class="lp-countdown-wrap" id="lp-countdown-wrap">
+                <i class="fa-solid fa-clock" style="color:#ef4444; font-size:1.1rem;"></i>
+                <span class="lp-countdown-label">ينتهي العرض خلال:</span>
+                <div class="lp-countdown-boxes">
+                    <div>
+                        <div class="lp-cd-box" id="cd-h">00</div>
+                        <div class="lp-cd-sub">ساعة</div>
+                    </div>
+                    <span class="lp-cd-sep">:</span>
+                    <div>
+                        <div class="lp-cd-box" id="cd-m">00</div>
+                        <div class="lp-cd-sub">دقيقة</div>
+                    </div>
+                    <span class="lp-cd-sep">:</span>
+                    <div>
+                        <div class="lp-cd-box" id="cd-s">00</div>
+                        <div class="lp-cd-sub">ثانية</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feature pills -->
+            <div class="lp-features-grid">
+                <div class="lp-feature-pill"><i class="fa-solid fa-circle-check"></i> شحن سريع لباب منزلك</div>
+                <div class="lp-feature-pill"><i class="fa-solid fa-circle-check"></i> الدفع عند الاستلام</div>
+                <div class="lp-feature-pill"><i class="fa-solid fa-circle-check"></i> ضمان جودة ${storeName}</div>
+                <div class="lp-feature-pill"><i class="fa-solid fa-circle-check"></i> دعم عملاء متواصل</div>
+            </div>
+
+            <!-- ===== ORDER FORM CARD ===== -->
+            <div class="lp-order-card">
+                <div class="lp-form-title">🛒 اطلب الآن</div>
+                <div class="lp-form-subtitle">أدخل بياناتك وسيتواصل معك فريقنا لتأكيد الطلب</div>
+
+                <!-- Variants -->
+                <div id="variants-container" class="lp-variants-wrap"></div>
+
                 <form id="landing-form" onsubmit="submitLandingOrder(event, ${p.id})">
-                    <div class="form-group"><input type="text" id="l-name" placeholder="الاسم بالكامل" required class="review-input" style="margin-bottom:10px;"></div>
-                    <div class="form-group"><input type="tel" id="l-phone" placeholder="رقم الهاتف" required class="review-input" style="margin-bottom:10px;" pattern="01[0-2,5]{1}[0-9]{8}"></div>
-                    
-                    <div class="form-group" style="margin-bottom:10px;">
-                        <div style="display:flex; gap:8px;">
-                            <input type="text" id="l-coupon" placeholder="كود الخصم (اختياري)" class="review-input">
-                            <button type="button" class="btn btn-primary" onclick="applyLandingCoupon(${p.price})" style="padding:10px; border-radius:12px;">تطبيق</button>
+                    <div class="lp-form-grid">
+                        <div class="lp-input-wrap">
+                            <input type="text" id="l-name" placeholder="الاسم بالكامل" required class="lp-input">
+                            <i class="fa-solid fa-user input-icon"></i>
                         </div>
-                        <div id="l-coupon-msg" style="font-size:0.8rem; margin-top:5px;"></div>
+                        <div class="lp-input-wrap">
+                            <input type="tel" id="l-phone" placeholder="رقم الهاتف" required class="lp-input" pattern="01[0-2,5]{1}[0-9]{8}">
+                            <i class="fa-solid fa-phone input-icon"></i>
+                        </div>
+
+                        <!-- Coupon full row -->
+                        <div class="full">
+                            <div class="lp-coupon-row">
+                                <input type="text" id="l-coupon" placeholder="كود الخصم (اختياري)" class="lp-input">
+                                <button type="button" class="lp-apply-btn" onclick="applyLandingCoupon(${p.price})">
+                                    <i class="fa-solid fa-tag"></i> تطبيق
+                                </button>
+                            </div>
+                            <div id="l-coupon-msg" class="lp-coupon-msg"></div>
+                        </div>
+
+                        <!-- Governorate full row -->
+                        <div class="full lp-input-wrap">
+                            <select id="l-gov" required class="lp-input" onchange="updateLandingTotal()">
+                                <option value="" disabled selected>اختر المحافظة...</option>
+                                ${shippingRates.map(r => `<option value="${r.price}" data-name="${r.name}">${r.name} (${r.price} ج.م)</option>`).join('')}
+                            </select>
+                            <i class="fa-solid fa-map-location-dot input-icon"></i>
+                        </div>
+
+                        <div class="lp-input-wrap">
+                            <input type="text" id="l-district" placeholder="المنطقة / الحي" required class="lp-input">
+                            <i class="fa-solid fa-location-dot input-icon"></i>
+                        </div>
+
+                        <div class="lp-input-wrap full">
+                            <textarea id="l-address" placeholder="العنوان بالتفصيل (الشارع، رقم العمارة، إلخ)" required class="lp-input"></textarea>
+                            <i class="fa-solid fa-house input-icon"></i>
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <select id="l-gov" required class="review-input" style="margin-bottom:10px;" onchange="updateLandingTotal()">
-                            <option value="" disabled selected>المحافظة...</option>
-                            ${shippingRates.map(r => `<option value="${r.price}" data-name="${r.name}">${r.name} (${r.price} ج.م)</option>`).join('')}
-                        </select>
-                    </div>
-                    <div class="form-group"><input type="text" id="l-district" placeholder="المنطقة / الحي" required class="review-input" style="margin-bottom:10px;"></div>
-                    <div class="form-group"><textarea id="l-address" placeholder="العنوان بالتفصيل (الشارع، رقم العمارة، إلخ)" required class="review-input" style="margin-bottom:15px;"></textarea></div>
-                    
-                    <div class="checkout-summary" style="padding:15px;border-radius:10px;margin-bottom:15px;">
-                        <div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span>سعر المنتج:</span> <span>${p.price} ج.م <span id="l-qty-display"></span></span></div>
-                        <div id="l-discount-row" style="display:none;justify-content:space-between;margin-bottom:5px;color:#ef4444;"><span>الخصم:</span> <span id="l-discount-val">0 ج.م</span></div>
-                        <div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span>الشحن:</span> <span id="l-ship-val">0 ج.م</span></div>
-                        <div style="display:flex;justify-content:space-between;border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;font-weight:bold;font-size:1.2rem;">
-                            <span>الإجمالي:</span>
-                            <span id="l-total-val" style="color:var(--primary-color)">${p.price} ج.م</span>
+                    <!-- Order summary -->
+                    <div class="lp-summary">
+                        <div class="lp-summary-row">
+                            <span>سعر المنتج</span>
+                            <span>${p.price} ج.م <span id="l-qty-display" style="color:var(--muted-color);font-size:0.85rem;"></span></span>
+                        </div>
+                        <div id="l-discount-row" class="lp-summary-row" style="display:none; color:#22c55e;">
+                            <span><i class="fa-solid fa-tag"></i> خصم الكوبون</span>
+                            <span id="l-discount-val">0 ج.م</span>
+                        </div>
+                        <div class="lp-summary-row">
+                            <span><i class="fa-solid fa-truck"></i> الشحن</span>
+                            <span id="l-ship-val">يُحدَّد عند اختيار المحافظة</span>
+                        </div>
+                        <div class="lp-summary-row">
+                            <span>الإجمالي</span>
+                            <span class="lp-total-val" id="l-total-val">${p.price} ج.م</span>
                         </div>
                     </div>
-                    
-                    <button type="submit" class="btn btn-primary" style="width:100%;padding:15px;font-size:1.2rem;">تأكيد الطلب الآن <i class="fa-solid fa-truck"></i></button>
+
+                    <button type="submit" class="lp-submit-btn" id="lp-submit-btn">
+                        <i class="fa-solid fa-bag-shopping"></i>
+                        <span>تأكيد الطلب الآن</span>
+                        <i class="fa-solid fa-circle-notch btn-spinner" id="lp-btn-spinner"></i>
+                    </button>
+
+                    <div class="lp-guarantee-strip">
+                        <i class="fa-solid fa-lock"></i>
+                        <span>بياناتك محمية وآمنة 100%</span>
+                        <span>·</span>
+                        <i class="fa-solid fa-shield-halved"></i>
+                        <span>ضمان الاسترجاع</span>
+                    </div>
                 </form>
             </div>
         </div>
@@ -401,12 +575,129 @@ function loadProduct() {
     if (p.has_colors || p.has_sizes) {
         renderLandingVariants();
     } else {
-        // Just one quantity selector if no variants? 
-        // For simplicity, let's just use the existing logic (qty=1) if no variants, 
-        // or we can add a basic qty selector. Let's just use total logic.
         updateLandingTotal();
     }
+
+    // Start countdown (randomly between 2h to 6h remaining)
+    startCountdown();
+
+    // Render reviews
+    renderProductReviews(p.id);
 }
+
+// Switch main image on thumbnail click
+function lpSwitchImg(url, thumbEl) {
+    const mainImg = document.getElementById('main-img');
+    if (mainImg) mainImg.src = url;
+    document.querySelectorAll('.lp-thumb').forEach(t => t.classList.remove('active'));
+    if (thumbEl) thumbEl.classList.add('active');
+}
+
+// ===== COUNTDOWN TIMER =====
+function startCountdown() {
+    if (countdownInterval) clearInterval(countdownInterval);
+
+    // Pick random duration between 2h and 6h
+    const minSecs = 2 * 60 * 60;
+    const maxSecs = 6 * 60 * 60;
+    let totalSecs = Math.floor(Math.random() * (maxSecs - minSecs + 1)) + minSecs;
+
+    // Restore from session if same product
+    const cdKey = 'lp_countdown_' + (currentProduct ? currentProduct.id : 'x');
+    const stored = sessionStorage.getItem(cdKey);
+    const storedEnd = stored ? parseInt(stored) : 0;
+    if (storedEnd > Date.now()) {
+        totalSecs = Math.floor((storedEnd - Date.now()) / 1000);
+    } else {
+        sessionStorage.setItem(cdKey, Date.now() + totalSecs * 1000);
+    }
+
+    function tick() {
+        if (totalSecs <= 0) {
+            clearInterval(countdownInterval);
+            return;
+        }
+        const h = Math.floor(totalSecs / 3600);
+        const m = Math.floor((totalSecs % 3600) / 60);
+        const s = totalSecs % 60;
+        const fmt = n => String(n).padStart(2, '0');
+        const cdH = document.getElementById('cd-h');
+        const cdM = document.getElementById('cd-m');
+        const cdS = document.getElementById('cd-s');
+        if (cdH) cdH.textContent = fmt(h);
+        if (cdM) cdM.textContent = fmt(m);
+        if (cdS) cdS.textContent = fmt(s);
+        totalSecs--;
+    }
+    tick();
+    countdownInterval = setInterval(tick, 1000);
+}
+
+// ===== STICKY CTA SETUP =====
+function setupStickyCTA() {
+    const stickyCTA = document.getElementById('lp-sticky-cta');
+    if (!stickyCTA) return;
+    window.addEventListener('scroll', () => {
+        const submitBtn = document.getElementById('lp-submit-btn');
+        if (!submitBtn) return;
+        const rect = submitBtn.getBoundingClientRect();
+        // Show sticky CTA when the main submit button is scrolled out of view
+        if (rect.bottom < 0 || rect.top > window.innerHeight) {
+            stickyCTA.classList.add('visible');
+        } else {
+            stickyCTA.classList.remove('visible');
+        }
+    }, { passive: true });
+}
+
+// ===== REVIEWS RENDERING =====
+function renderProductReviews(productId) {
+    const section = document.getElementById('reviews-section');
+    const grid = document.getElementById('reviews-grid');
+    const summaryText = document.getElementById('reviews-summary-text');
+    if (!section || !grid) return;
+
+    // Filter reviews for this product
+    const productReviews = allReviews.filter(r => r.product_id == productId && r.is_approved !== false);
+
+    if (!productReviews || productReviews.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+
+    const avgRating = productReviews.reduce((s, r) => s + (r.rating || 5), 0) / productReviews.length;
+    if (summaryText) {
+        summaryText.textContent = `${productReviews.length} تقييم · متوسط التقييم: ${avgRating.toFixed(1)} من 5`;
+    }
+
+    const avatarColors = ['linear-gradient(135deg,#38bdf8,#818cf8)', 'linear-gradient(135deg,#f472b6,#fb923c)', 'linear-gradient(135deg,#22c55e,#38bdf8)', 'linear-gradient(135deg,#fbbf24,#f97316)'];
+
+    grid.innerHTML = productReviews.slice(0, 9).map((r, i) => {
+        const name = r.customer_name || 'عميل مجهول';
+        const initial = name.charAt(0);
+        const color = avatarColors[i % avatarColors.length];
+        const rating = r.rating || 5;
+        const stars = '★'.repeat(Math.round(rating)) + '☆'.repeat(5 - Math.round(rating));
+        const date = r.created_at ? new Date(r.created_at).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+        return `
+            <div class="lp-review-card">
+                <div class="lp-review-header">
+                    <div class="lp-review-avatar" style="background:${color}">${initial}</div>
+                    <div>
+                        <div class="lp-review-name">${name}</div>
+                        ${date ? `<div class="lp-review-date">${date}</div>` : ''}
+                    </div>
+                </div>
+                <div class="lp-review-stars">${stars}</div>
+                <div class="lp-review-text">${r.text || r.comment || r.review_text || ''}</div>
+                <div class="lp-review-verified"><i class="fa-solid fa-circle-check"></i> مشتري موثق</div>
+            </div>
+        `;
+    }).join('');
+
+    section.style.display = 'block';
+}
+
 
 function renderLandingVariants() {
     const container = document.getElementById('variants-container');
@@ -489,6 +780,19 @@ function updateVariantRow(id, field, value) {
         row.qty = value;
     } else {
         row[field] = value;
+    }
+    
+    if (field === 'color' && currentProduct && currentProduct.images && currentProduct.images.length > 0) {
+        const matchingImg = currentProduct.images.find(img => {
+            if (typeof img === 'string') return false;
+            return img.color && img.color.trim().toLowerCase() === value.trim().toLowerCase();
+        });
+        if (matchingImg) {
+            const mainImg = document.getElementById('main-img');
+            if (mainImg) {
+                mainImg.src = matchingImg.url || 'prerx logo.jpeg';
+            }
+        }
     }
     
     renderLandingVariants();
@@ -714,13 +1018,22 @@ async function submitLandingOrder(e, productId) {
     try {
         const savedOrder = await SupabaseService.saveOrder(orderData);
         
-        // Pixel Purchase
+        // Pixel Purchase (Facebook)
         if (window.fbq) {
             fbq('track', 'Purchase', { 
                 value: total, 
                 currency: 'EGP', 
                 content_ids: [p.id],
                 content_type: 'product'
+            });
+        }
+        // TikTok Pixel Purchase
+        if (window.ttq) {
+            window.ttq.track('CompletePayment', {
+                content_id: String(p.id),
+                content_name: p.name,
+                value: total,
+                currency: 'EGP'
             });
         }
         
@@ -778,6 +1091,45 @@ function initPixel(id) {
     fbq('track', 'PageView');
 }
 
+// ===== TIKTOK PIXEL =====
+function initTikTokPixel(id) {
+    if (!id) return;
+    if (window.ttq && window.ttq._i && window.ttq._i[id]) {
+        window.ttq.page();
+        return;
+    }
+    !function (w, d, t) {
+        w.TiktokAnalyticsObject = t;
+        var ttq = w[t] = w[t] || [];
+        ttq.methods = ['page','track','identify','instances','debug','on','off','once','ready','alias','group','enableCookie','disableCookie'];
+        ttq.setAndDefer = function(t, e) { t[e] = function() { t.push([e].concat(Array.prototype.slice.call(arguments, 0))); }; };
+        for (var i = 0; i < ttq.methods.length; i++) ttq.setAndDefer(ttq, ttq.methods[i]);
+        ttq.instance = function(t) { for (var e = ttq._i[t] || [], n = 0; n < ttq.methods.length; n++) ttq.setAndDefer(e, ttq.methods[n]); return e; };
+        ttq.load = function(e, n) {
+            var i = 'https://analytics.tiktok.com/i18n/pixel/events.js';
+            ttq._i = ttq._i || {}; ttq._i[e] = []; ttq._i[e]._u = i; ttq._t = ttq._t || {}; ttq._t[e] = +new Date; ttq._o = ttq._o || {}; ttq._o[e] = n || {};
+            n = document.createElement('script'); n.type = 'text/javascript'; n.async = !0; n.src = i + '?sdkid=' + e + '&lib=' + t;
+            var a = document.getElementsByTagName('script')[0]; a.parentNode.insertBefore(n, a);
+        };
+        ttq.load(id);
+        ttq.page();
+    }(window, document, 'ttq');
+}
+
+function trackTikTokPixel(event, data = {}) {
+    if (!window.ttq) return;
+    const ttMap = {
+        'PageView':         () => window.ttq.page(),
+        'ViewContent':      () => window.ttq.track('ViewContent',      { content_id: String((data.content_ids || [])[0] || ''), content_name: data.content_name, value: data.value, currency: data.currency || 'EGP' }),
+        'AddToCart':        () => window.ttq.track('AddToCart',        { content_id: String((data.content_ids || [])[0] || ''), content_name: data.content_name, value: data.value, currency: data.currency || 'EGP' }),
+        'InitiateCheckout': () => window.ttq.track('InitiateCheckout', { value: data.value, currency: data.currency || 'EGP' }),
+        'Purchase':         () => window.ttq.track('CompletePayment',  { content_id: String((data.content_ids || [])[0] || ''), content_name: data.content_name, value: data.value, currency: data.currency || 'EGP' }),
+        'Contact':          () => window.ttq.track('Contact')
+    };
+    if (ttMap[event]) ttMap[event]();
+    else { try { window.ttq.track(event, data); } catch(e) {} }
+}
+
 function closeSuccessModal() {
     document.getElementById('success-overlay').classList.remove('active');
     document.getElementById('success-modal').classList.remove('active');
@@ -789,9 +1141,10 @@ function getColorHex(colorName) {
     // Normalize string
     const normalized = colorName.trim().toLowerCase();
     
-    // Check if it's already a valid hex code
-    const hexMatch = normalized.match(/#([0-9A-Fa-f]{3,8})/);
-    if (hexMatch) return '#' + hexMatch[1];
+    // Check if it's already a valid hex code (with or without #)
+    if (/^#([0-9A-Fa-f]{3,8})$/.test(normalized)) return normalized;
+    if (/^[0-9A-Fa-f]{6}$/.test(normalized)) return '#' + normalized;
+    if (/^[0-9A-Fa-f]{3}$/.test(normalized)) return '#' + normalized;
     
     // Arabic & English color mapping
     const map = {
@@ -840,13 +1193,13 @@ function getColorHex(colorName) {
         'cyan': '#38bdf8'
     };
     
-    // Look up in map
+    // Look up in map (support partial matches like "اللون الاحمر" or "أحمر غامق")
     for (const [key, val] of Object.entries(map)) {
         if (normalized.includes(key)) {
             return val;
         }
     }
     
-    // Fallback: Check if it's a valid HTML color name
+    // Fallback: Check if it's a valid HTML color name or just return the colorName
     return colorName;
 }

@@ -42,6 +42,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadShippingSelects();
     updateCartUI();
     initScrollReveal();
+
+    // Check URL parameters for cart action
+    const urlParams = new URLSearchParams(window.location.search);
+    const couponParam = urlParams.get('coupon');
+    if (couponParam) {
+        const couponInput = document.getElementById('coupon-input');
+        if (couponInput) {
+            couponInput.value = couponParam;
+            applyCoupon();
+        }
+    }
+    if (urlParams.get('openCart') === 'true') {
+        openCart();
+    } else if (urlParams.get('checkout') === 'true') {
+        checkout();
+    }
 });
 
 async function fetchWithCache(key, fetchFn, onCacheHit) {
@@ -230,7 +246,6 @@ function applySettings() {
     const heroTitle = document.querySelector('.hero-content h1');
     const heroDesc = document.querySelector('.hero-content p');
     const heroBtn = document.querySelector('.hero-buttons .btn-primary');
-    const heroImg = document.querySelector('.hero-image img');
 
     if (heroTitle) {
         const title = settings.banner.title || "ارتقِ بتجربة هاتفك مع";
@@ -241,7 +256,83 @@ function applySettings() {
     }
     if (heroDesc) heroDesc.innerText = settings.banner.desc || "نقدم لك تشكيلة واسعة من أحدث وأجود إكسسوارات الهواتف الذكية.";
     if (heroBtn) heroBtn.innerHTML = `${settings.banner.cta || 'تسوق الآن'} <i class="fa-solid fa-arrow-left"></i>`;
-    if (settings.banner.img && heroImg) heroImg.src = settings.banner.img;
+
+    // Render Hero Image or Video dynamically
+    const heroImageContainer = document.querySelector('.hero-image');
+    if (heroImageContainer) {
+        const isVideo = settings.banner && settings.banner.mediaType === 'video';
+        const glassCard = heroImageContainer.querySelector('.glass-card');
+        
+        // Remove existing img or video
+        const existingImg = heroImageContainer.querySelector('img');
+        const existingVideo = heroImageContainer.querySelector('video');
+        if (existingImg) existingImg.remove();
+        if (existingVideo) existingVideo.remove();
+        
+        if (isVideo && settings.banner.video) {
+            const videoEl = document.createElement('video');
+            videoEl.preload = 'none'; // Save bandwidth
+            videoEl.autoplay = true;
+            videoEl.loop = true;
+            videoEl.muted = true;
+            videoEl.setAttribute('playsinline', '');
+            videoEl.style.width = '100%';
+            videoEl.style.borderRadius = '20px';
+            videoEl.style.boxShadow = 'var(--shadow)';
+            videoEl.style.animation = 'float 6s ease-in-out infinite';
+            videoEl.style.willChange = 'transform';
+            
+            const loadVideoSrc = () => {
+                if (!videoEl.src) {
+                    videoEl.src = settings.banner.video;
+                    videoEl.load();
+                }
+            };
+
+            // Defer starting lazy load observer until after page load to prioritize CSS/fonts
+            const initVideoObserver = () => {
+                if ('IntersectionObserver' in window) {
+                    const observer = new IntersectionObserver((entries, obs) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                loadVideoSrc();
+                                obs.unobserve(entry.target);
+                            }
+                        });
+                    }, { rootMargin: '200px' });
+                    observer.observe(videoEl);
+                } else {
+                    loadVideoSrc();
+                }
+            };
+
+            if (document.readyState === 'complete') {
+                setTimeout(initVideoObserver, 400);
+            } else {
+                window.addEventListener('load', () => setTimeout(initVideoObserver, 400));
+            }
+            
+            if (glassCard) {
+                heroImageContainer.insertBefore(videoEl, glassCard);
+            } else {
+                heroImageContainer.appendChild(videoEl);
+            }
+        } else {
+            const imgEl = document.createElement('img');
+            imgEl.src = (settings.banner && settings.banner.img) || 'https://images.unsplash.com/photo-1601593346740-925612772716?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
+            imgEl.alt = 'إكسسوارات هواتف';
+            imgEl.width = 600;
+            imgEl.height = 600;
+            imgEl.loading = 'eager';
+            imgEl.setAttribute('fetchpriority', 'high');
+            
+            if (glassCard) {
+                heroImageContainer.insertBefore(imgEl, glassCard);
+            } else {
+                heroImageContainer.appendChild(imgEl);
+            }
+        }
+    }
 
     // Badge
     const badgeText = document.querySelector('.glass-card span');
@@ -256,7 +347,7 @@ function applySettings() {
         document.querySelectorAll('.logo span').forEach(s => s.innerText = settings.store.name);
         document.title = `${settings.store.name} - كل ما تحتاجه في مكان واحد`;
         
-        const footerCopyright = document.querySelector('.footer-bottom p');
+        const footerCopyright = document.querySelector('.footer-bottom .copyright') || document.querySelector('.footer-bottom p');
         if (footerCopyright) {
             footerCopyright.innerHTML = `&copy; ${new Date().getFullYear()} ${settings.store.name}. جميع الحقوق محفوظة.`;
         }
@@ -273,6 +364,10 @@ function applySettings() {
     // Pixel Initialization
     if (settings.store.pixel) {
         initPixel(settings.store.pixel);
+    }
+    // TikTok Pixel Initialization
+    if (settings.store.tiktokPixel) {
+        initTikTokPixel(settings.store.tiktokPixel);
     }
 }
 
@@ -295,6 +390,50 @@ function initPixel(id) {
 
 function trackPixel(event, data = {}) {
     if (window.fbq) fbq('track', event, data);
+    trackTikTokPixel(event, data);
+}
+
+// ===== TIKTOK PIXEL =====
+function initTikTokPixel(id) {
+    if (!id) return;
+    if (window.ttq && window.ttq._i && window.ttq._i[id]) {
+        // Already initialized
+        window.ttq.page();
+        return;
+    }
+    !function (w, d, t) {
+        w.TiktokAnalyticsObject = t;
+        var ttq = w[t] = w[t] || [];
+        ttq.methods = ['page','track','identify','instances','debug','on','off','once','ready','alias','group','enableCookie','disableCookie'];
+        ttq.setAndDefer = function(t, e) { t[e] = function() { t.push([e].concat(Array.prototype.slice.call(arguments, 0))); }; };
+        for (var i = 0; i < ttq.methods.length; i++) ttq.setAndDefer(ttq, ttq.methods[i]);
+        ttq.instance = function(t) { for (var e = ttq._i[t] || [], n = 0; n < ttq.methods.length; n++) ttq.setAndDefer(e, ttq.methods[n]); return e; };
+        ttq.load = function(e, n) {
+            var i = 'https://analytics.tiktok.com/i18n/pixel/events.js';
+            ttq._i = ttq._i || {}; ttq._i[e] = []; ttq._i[e]._u = i; ttq._t = ttq._t || {}; ttq._t[e] = +new Date; ttq._o = ttq._o || {}; ttq._o[e] = n || {};
+            n = document.createElement('script'); n.type = 'text/javascript'; n.async = !0; n.src = i + '?sdkid=' + e + '&lib=' + t;
+            var a = document.getElementsByTagName('script')[0]; a.parentNode.insertBefore(n, a);
+        };
+        ttq.load(id);
+        ttq.page();
+    }(window, document, 'ttq');
+}
+
+function trackTikTokPixel(event, data = {}) {
+    if (!window.ttq) return;
+    // Map Facebook events to TikTok standard events
+    const ttMap = {
+        'PageView':     () => window.ttq.page(),
+        'ViewContent':  () => window.ttq.track('ViewContent',  { content_id: (data.content_ids || [])[0], content_name: data.content_name, value: data.value, currency: data.currency || 'EGP' }),
+        'AddToCart':    () => window.ttq.track('AddToCart',    { content_id: (data.content_ids || [])[0], content_name: data.content_name, value: data.value, currency: data.currency || 'EGP' }),
+        'InitiateCheckout': () => window.ttq.track('InitiateCheckout', { value: data.value, currency: data.currency || 'EGP' }),
+        'Purchase':     () => window.ttq.track('CompletePayment', { content_id: (data.content_ids || [])[0], content_name: data.content_name, value: data.value, currency: data.currency || 'EGP' }),
+        'Contact':      () => window.ttq.track('Contact')
+    };
+    if (ttMap[event]) ttMap[event]();
+    else {
+        try { window.ttq.track(event, data); } catch(e) {}
+    }
 }
 
 function loadShippingSelects() {
@@ -409,10 +548,10 @@ function renderProducts(catId, reset = true) {
     const productHTML = paginated.map(p => {
         const discount = p.old_price ? Math.round(((p.old_price - p.price) / p.old_price) * 100) : 0;
         return `
-            <div class="product-card" style="cursor: pointer;" onclick="window.location.href = 'landing.html?id=${p.id}'">
+            <div class="product-card" style="cursor: pointer;" onclick="window.location.href = 'product.html?id=${p.id}'">
                 ${p.badge || (discount > 0 ? `خصم ${discount}%` : '') ? `<span class="product-badge">${p.badge || `خصم ${discount}%`}</span>` : ''}
                 <div class="product-image">
-                    <img src="${p.images[0] || 'prerx logo.jpeg'}" alt="${p.name}" loading="lazy" decoding="async">
+                    <img src="${typeof p.images[0] === 'string' ? p.images[0] : (p.images[0]?.url || 'prerx logo.jpeg')}" alt="${p.name}" loading="lazy" decoding="async">
                     ${p.images.length > 1 ? `
                         <button class="slider-btn prev-btn" onclick="event.stopPropagation(); slideImg(this, -1, ${p.id})"><i class="fa-solid fa-chevron-right"></i></button>
                         <button class="slider-btn next-btn" onclick="event.stopPropagation(); slideImg(this, 1, ${p.id})"><i class="fa-solid fa-chevron-left"></i></button>
@@ -475,6 +614,7 @@ function addToCart(id) {
     }
     
     const existing = cartItems.find(item => item.id === id);
+    
     if (existing) {
         existing.qty++;
     } else {
@@ -488,16 +628,24 @@ function addToCart(id) {
     trackPixel('AddToCart', { content_ids: [p.id], content_name: p.name, value: p.price, currency: 'EGP' });
 }
 
-function removeFromCart(id) {
-    cartItems = cartItems.filter(item => item.id !== id);
+function changeQty(cartId, delta) {
+    const item = cartItems.find(i => 
+        i.cartId === cartId || 
+        i.cartId === String(cartId) || 
+        (String(i.id) === String(cartId) && !i.color && !i.size)
+    );
+    if (!item) return;
+    item.qty += delta;
+    if (item.qty < 1) return removeFromCart(cartId);
     updateCartUI();
 }
 
-function changeQty(id, delta) {
-    const item = cartItems.find(i => i.id === id);
-    if (!item) return;
-    item.qty += delta;
-    if (item.qty < 1) return removeFromCart(id);
+function removeFromCart(cartId) {
+    cartItems = cartItems.filter(item => 
+        item.cartId !== cartId && 
+        item.cartId !== String(cartId) && 
+        !(String(item.id) === String(cartId) && !item.color && !item.size)
+    );
     updateCartUI();
 }
 
@@ -505,42 +653,110 @@ function updateCartUI() {
     const count = document.querySelector('.cart-count');
     const container = document.getElementById('cart-items');
     
-    // Save to localStorage
     localStorage.setItem('perex_cart', JSON.stringify(cartItems));
-
-    count.innerText = cartItems.reduce((s, i) => s + i.qty, 0);
+    if (count) count.innerText = cartItems.reduce((s, i) => s + i.qty, 0);
+    
+    if (!container) return;
     container.innerHTML = '';
 
     if (cartItems.length === 0) {
         container.innerHTML = '<p class="empty-cart-msg">السلة فارغة حالياً</p>';
         appliedCoupon = null;
-        updateTotals();
+        calculateCartTotal();
         return;
     }
 
     cartItems.forEach((item) => {
+        const variantText = (item.color || item.size) ? ` (${[item.color, item.size].filter(x => x).join(' - ')})` : '';
+        const itemKey = item.cartId || item.id;
+        
+        let itemImg = 'prerx logo.jpeg';
+        if (item.images && item.images.length > 0) {
+            const matchedImg = item.images.find(img => 
+                typeof img !== 'string' && 
+                img.color && 
+                img.color.trim().toLowerCase() === (item.color || '').trim().toLowerCase()
+            );
+            if (matchedImg && matchedImg.url) {
+                itemImg = matchedImg.url;
+            } else {
+                const firstImg = item.images[0];
+                itemImg = typeof firstImg === 'string' ? firstImg : (firstImg?.url || 'prerx logo.jpeg');
+            }
+        }
+
         container.innerHTML += `
             <div class="cart-item">
-                <img src="${item.images[0] || 'prerx logo.jpeg'}" onclick="window.location.href='landing.html?id=${item.id}'">
+                <img src="${itemImg}" onclick="window.location.href='product.html?id=${item.id}'" style="cursor: pointer;">
                 <div class="cart-item-info">
-                    <h4 class="cart-item-title" onclick="window.location.href='landing.html?id=${item.id}'">${item.name}</h4>
+                    <h4 class="cart-item-title" onclick="window.location.href='product.html?id=${item.id}'" style="cursor: pointer;">${item.name}${variantText}</h4>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
                         <span class="cart-item-price">${item.price} ج.م</span>
                         <div class="qty-controls" style="display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.05); padding:5px 10px; border-radius:8px;">
-                            <button onclick="changeQty(${item.id}, -1)" style="background:none; border:none; color:var(--primary-color); cursor:pointer;"><i class="fa-solid fa-minus"></i></button>
+                            <button onclick="changeQty('${itemKey}', -1)" style="background:none; border:none; color:var(--primary-color); cursor:pointer;"><i class="fa-solid fa-minus"></i></button>
                             <span>${item.qty}</span>
-                            <button onclick="changeQty(${item.id}, 1)" style="background:none; border:none; color:var(--primary-color); cursor:pointer;"><i class="fa-solid fa-plus"></i></button>
+                            <button onclick="changeQty('${itemKey}', 1)" style="background:none; border:none; color:var(--primary-color); cursor:pointer;"><i class="fa-solid fa-plus"></i></button>
                         </div>
                     </div>
-                    <span class="remove-item" onclick="removeFromCart(${item.id})" style="margin-top:10px; display:inline-block; font-size:0.8rem; color:#ef4444; cursor:pointer;"><i class="fa-solid fa-trash"></i> إزالة</span>
+                    <span class="remove-item" onclick="removeFromCart('${itemKey}')" style="margin-top:10px; display:inline-block; font-size:0.8rem; color:#ef4444; cursor:pointer;"><i class="fa-solid fa-trash"></i> إزالة</span>
                 </div>
             </div>
         `;
     });
-    updateTotals();
+    
+    calculateCartTotal();
 }
 
-function updateTotals() {
+function applyCoupon() {
+    const input = document.getElementById('coupon-input');
+    const msg = document.getElementById('coupon-msg');
+    const code = input.value.toUpperCase().trim();
+    
+    if (!code) {
+        appliedCoupon = null;
+        if (msg) {
+            msg.innerText = 'تم إزالة كود الخصم';
+            msg.style.color = '#ef4444';
+        }
+        calculateCartTotal();
+        calculateShipping();
+        return;
+    }
+    
+    const coupon = coupons.find(c => c.code === code && c.is_active !== false);
+    if (!coupon) {
+        msg.innerText = 'كود الخصم غير صالح أو منتهي الصلاحية';
+        msg.style.color = '#ef4444';
+        appliedCoupon = null;
+        calculateCartTotal();
+        return;
+    }
+    
+    // Check expiry
+    if (coupon.expiry_date && new Date(coupon.expiry_date) < new Date()) {
+        msg.innerText = 'كود الخصم منتهي الصلاحية';
+        msg.style.color = '#ef4444';
+        appliedCoupon = null;
+        calculateCartTotal();
+        return;
+    }
+
+    let subtotal = cartItems.reduce((s, i) => s + (i.price * i.qty), 0);
+    if (coupon.min_order && subtotal < coupon.min_order) {
+        msg.innerText = `الحد الأدنى لتطبيق الكود هو ${coupon.min_order} ج.م`;
+        msg.style.color = '#ef4444';
+        appliedCoupon = null;
+        calculateCartTotal();
+        return;
+    }
+
+    appliedCoupon = coupon;
+    msg.innerText = 'تم تطبيق الكود بنجاح!';
+    msg.style.color = '#22c55e';
+    calculateCartTotal();
+}
+
+function calculateCartTotal() {
     let subtotal = cartItems.reduce((s, i) => s + (i.price * i.qty), 0);
     let discount = 0;
 
@@ -548,309 +764,232 @@ function updateTotals() {
         if (appliedCoupon.apply_type === 'all' || !appliedCoupon.apply_type) {
             discount = appliedCoupon.type === 'fixed' ? appliedCoupon.discount : Math.round(subtotal * (appliedCoupon.discount / 100));
         } else if (appliedCoupon.apply_type === 'categories') {
-            const eligibleTotal = cartItems.reduce((sum, item) => {
-                const p = products.find(prod => prod.id === item.id);
-                if (p && appliedCoupon.target_ids.includes(p.category)) {
-                    return sum + (item.price * item.qty);
-                }
-                return sum;
-            }, 0);
-            discount = appliedCoupon.type === 'fixed' ? appliedCoupon.discount : Math.round(eligibleTotal * (appliedCoupon.discount / 100));
-        } else if (appliedCoupon.apply_type === 'products') {
-            const eligibleTotal = cartItems.reduce((sum, item) => {
-                if (appliedCoupon.target_ids.includes(item.id.toString())) {
-                    return sum + (item.price * item.qty);
-                }
-                return sum;
-            }, 0);
-            discount = appliedCoupon.type === 'fixed' ? appliedCoupon.discount : Math.round(eligibleTotal * (appliedCoupon.discount / 100));
+            const applicableItems = cartItems.filter(item => appliedCoupon.target_ids.includes(item.category));
+            let applicableSubtotal = applicableItems.reduce((s, i) => s + (i.price * i.qty), 0);
+            discount = appliedCoupon.type === 'fixed' ? appliedCoupon.discount : Math.round(applicableSubtotal * (appliedCoupon.discount / 100));
+        } else {
+            const applicableItems = cartItems.filter(item => appliedCoupon.target_ids.includes(item.id.toString()) || appliedCoupon.target_ids.includes(item.id));
+            let applicableSubtotal = applicableItems.reduce((s, i) => s + (i.price * i.qty), 0);
+            discount = appliedCoupon.type === 'fixed' ? appliedCoupon.discount : Math.round(applicableSubtotal * (appliedCoupon.discount / 100));
         }
-        if (discount > subtotal) discount = subtotal;
-        if (appliedCoupon.type === 'percentage' && appliedCoupon.max_discount && appliedCoupon.max_discount > 0) {
-            if (discount > appliedCoupon.max_discount) discount = appliedCoupon.max_discount;
-        }
-        
-        document.getElementById('cart-discount-row').style.display = 'flex';
-        document.getElementById('cart-discount-price').innerText = `-${discount} ج.م`;
-    } else {
-        document.getElementById('cart-discount-row').style.display = 'none';
-    }
 
-    // Read shipping from whichever governorate select has a value (cart or checkout)
-    const cartGovEl = document.getElementById('cart-gov');
-    const customerGovEl = document.getElementById('customer-gov');
-    const govValue = (customerGovEl && customerGovEl.value) ? customerGovEl.value
-                   : (cartGovEl ? cartGovEl.value : '');
-    const originalShipPrice = parseFloat(govValue) || 0;
-    
-    // Check if cart has eligible items for the coupon
-    let hasEligibleItems = false;
-    if (appliedCoupon) {
-        if (appliedCoupon.apply_type === 'all' || !appliedCoupon.apply_type) {
-            hasEligibleItems = cartItems.length > 0;
-        } else if (appliedCoupon.apply_type === 'categories') {
-            hasEligibleItems = cartItems.some(item => {
-                const p = products.find(prod => prod.id === item.id);
-                return p && appliedCoupon.target_ids.includes(p.category);
-            });
-        } else if (appliedCoupon.apply_type === 'products') {
-            hasEligibleItems = cartItems.some(item => appliedCoupon.target_ids.includes(item.id.toString()));
+        if (appliedCoupon.max_discount && discount > appliedCoupon.max_discount) {
+            discount = appliedCoupon.max_discount;
         }
     }
 
-    const shipPrice = (appliedCoupon && appliedCoupon.free_shipping && hasEligibleItems) ? 0 : originalShipPrice;
-    const total = subtotal - discount + shipPrice;
+    const selectGov = document.getElementById('cart-gov');
+    let shipping = 0;
+    if (selectGov && selectGov.value) {
+        shipping = parseFloat(selectGov.value) || 0;
+    }
+
+    if (appliedCoupon && appliedCoupon.free_shipping) {
+        shipping = 0;
+    }
+
+    let total = subtotal - discount + shipping;
+    if (total < 0) total = 0;
 
     document.getElementById('cart-subtotal-price').innerText = `${subtotal} ج.م`;
-    
-    const shippingEl = document.getElementById('cart-shipping-price');
-    if (appliedCoupon && appliedCoupon.free_shipping && hasEligibleItems) {
-        shippingEl.innerHTML = `<del style="color:#999; font-size:0.8rem;">${originalShipPrice} ج.م</del> <span style="color:#22c55e;">مجاني</span>`;
-    } else {
-        shippingEl.innerText = `${shipPrice} ج.م`;
-    }
-    
+    document.getElementById('cart-shipping-price').innerText = `${shipping} ج.م`;
     document.getElementById('cart-total-price').innerText = `${total} ج.م`;
 
-    // Checkout Summary
-    if (document.getElementById('summary-subtotal')) {
-        document.getElementById('summary-subtotal').innerText = `${subtotal} ج.م`;
-        document.getElementById('summary-shipping').innerText = `${shipPrice} ج.م`;
-        document.getElementById('summary-total').innerText = `${total} ج.م`;
-        
-        if (appliedCoupon) {
-            document.getElementById('summary-discount-row').style.display = 'flex';
-            document.getElementById('summary-discount').innerText = discount > 0 ? `-${discount} ج.م` : 'شحن مجاني';
-        } else {
-            document.getElementById('summary-discount-row').style.display = 'none';
-        }
+    const discountRow = document.getElementById('cart-discount-row');
+    if (discount > 0) {
+        discountRow.style.display = 'flex';
+        document.getElementById('cart-discount-price').innerText = `-${discount} ج.م`;
+    } else {
+        discountRow.style.display = 'none';
     }
 }
 
-function calculateCartTotal() {
-    // Sync cart-gov → customer-gov so checkout modal stays in sync
-    const cartGov = document.getElementById('cart-gov');
-    const customerGov = document.getElementById('customer-gov');
-    if (cartGov && customerGov && cartGov.value) {
-        customerGov.value = cartGov.value;
-    }
-    updateTotals();
-}
 
-function calculateShipping() {
-    // Sync customer-gov → cart-gov so updateTotals reads the right value
-    const customerGov = document.getElementById('customer-gov');
-    const cartGov = document.getElementById('cart-gov');
-    if (customerGov && cartGov && customerGov.value) {
-        cartGov.value = customerGov.value;
-    }
-    updateTotals();
-}
 
-// ===== COUPON LOGIC =====
-function applyCoupon() {
-    const code = document.getElementById('coupon-input').value.toUpperCase().trim();
-    const msgEl = document.getElementById('coupon-msg');
-    
-    if (!code) return;
-
-    const coupon = coupons.find(c => c.code === code);
-    if (!coupon) {
-        msgEl.innerText = 'كود الخصم غير موجود';
-        msgEl.style.color = '#ef4444';
-        return;
-    }
-
-    if (!coupon.is_active) {
-        msgEl.innerText = 'هذا الكود معطل حالياً';
-        msgEl.style.color = '#ef4444';
-        return;
-    }
-
-    if (coupon.expiry_date && new Date(coupon.expiry_date) < new Date()) {
-        msgEl.innerText = 'هذا الكود منتهي الصلاحية';
-        msgEl.style.color = '#ef4444';
-        return;
-    }
-
-    if (coupon.current_uses >= coupon.max_uses) {
-        msgEl.innerText = 'تم الوصول للحد الأقصى لاستخدام الكود';
-        msgEl.style.color = '#ef4444';
-        return;
-    }
-
-    // Check eligibility
-    let hasEligibleItems = false;
-    if (coupon.apply_type === 'all' || !coupon.apply_type) {
-        hasEligibleItems = cartItems.length > 0;
-    } else if (coupon.apply_type === 'categories') {
-        hasEligibleItems = cartItems.some(item => {
-            const p = products.find(prod => prod.id === item.id);
-            return p && coupon.target_ids.includes(p.category);
-        });
-    } else if (coupon.apply_type === 'products') {
-        hasEligibleItems = cartItems.some(item => coupon.target_ids.includes(item.id.toString()));
-    }
-
-    if (!hasEligibleItems) {
-        msgEl.innerText = 'هذا الكوبون لا ينطبق على المنتجات الموجودة في السلة';
-        msgEl.style.color = '#ef4444';
-        return;
-    }
-
-    let subtotal = cartItems.reduce((s, i) => s + (i.price * i.qty), 0);
-    if (coupon.min_order && subtotal < coupon.min_order) {
-        msgEl.innerText = `الحد الأدنى لاستخدام الكوبون هو ${coupon.min_order} ج.م`;
-        msgEl.style.color = '#ef4444';
-        return;
-    }
-
-    appliedCoupon = coupon;
-    const discountVal = coupon.type === 'fixed' ? `${coupon.discount} ج.م` : `${coupon.discount}%`;
-    if (coupon.discount > 0 && coupon.free_shipping) {
-        msgEl.innerText = `تم تطبيق خصم ${discountVal} + شحن مجاني!`;
-    } else if (coupon.discount > 0) {
-        msgEl.innerText = `تم تطبيق خصم بقيمة ${discountVal}`;
-    } else if (coupon.free_shipping) {
-        msgEl.innerText = `تم تطبيق عرض الشحن المجاني!`;
-    }
-    
-    msgEl.style.color = "#22c55e";
-    updateTotals();
-}
-
-// ===== CHECKOUT LOGIC =====
+// ===== CHECKOUT & ORDER SUBMISSION =====
 function checkout() {
-    if (cartItems.length === 0) return alert('السلة فارغة!');
-    
-    const cartGov = document.getElementById('cart-gov').value;
-    if (cartGov) document.getElementById('customer-gov').value = cartGov;
-
-    updateTotals();
-    
-    // Pixel InitiateCheckout
-    const subtotal = cartItems.reduce((s, i) => s + (i.price * i.qty), 0);
-    trackPixel('InitiateCheckout', { 
-        value: subtotal, 
-        currency: 'EGP', 
-        content_ids: cartItems.map(i => i.id),
-        content_type: 'product'
-    });
-
-    document.getElementById('checkout-overlay').classList.add('active');
+    if (cartItems.length === 0) return;
+    calculateShipping();
+    closeCart();
     document.getElementById('checkout-modal').classList.add('active');
+    document.getElementById('checkout-overlay').classList.add('active');
 }
 
 function closeCheckout() {
-    document.getElementById('checkout-overlay').classList.remove('active');
     document.getElementById('checkout-modal').classList.remove('active');
+    document.getElementById('checkout-overlay').classList.remove('active');
+}
+
+function calculateShipping() {
+    let subtotal = cartItems.reduce((s, i) => s + (i.price * i.qty), 0);
+    let discount = 0;
+
+    if (appliedCoupon) {
+        if (appliedCoupon.apply_type === 'all' || !appliedCoupon.apply_type) {
+            discount = appliedCoupon.type === 'fixed' ? appliedCoupon.discount : Math.round(subtotal * (appliedCoupon.discount / 100));
+        } else if (appliedCoupon.apply_type === 'categories') {
+            const applicableItems = cartItems.filter(item => appliedCoupon.target_ids.includes(item.category));
+            let applicableSubtotal = applicableItems.reduce((s, i) => s + (i.price * i.qty), 0);
+            discount = appliedCoupon.type === 'fixed' ? appliedCoupon.discount : Math.round(applicableSubtotal * (appliedCoupon.discount / 100));
+        } else {
+            const applicableItems = cartItems.filter(item => appliedCoupon.target_ids.includes(item.id.toString()) || appliedCoupon.target_ids.includes(item.id));
+            let applicableSubtotal = applicableItems.reduce((s, i) => s + (i.price * i.qty), 0);
+            discount = appliedCoupon.type === 'fixed' ? appliedCoupon.discount : Math.round(applicableSubtotal * (appliedCoupon.discount / 100));
+        }
+
+        if (appliedCoupon.max_discount && discount > appliedCoupon.max_discount) {
+            discount = appliedCoupon.max_discount;
+        }
+    }
+
+    const selectGov = document.getElementById('customer-gov');
+    let shipping = 0;
+    if (selectGov && selectGov.value) {
+        shipping = parseFloat(selectGov.value) || 0;
+    }
+
+    if (appliedCoupon && appliedCoupon.free_shipping) {
+        shipping = 0;
+    }
+
+    let total = subtotal - discount + shipping;
+    if (total < 0) total = 0;
+
+    document.getElementById('summary-subtotal').innerText = `${subtotal} ج.م`;
+    document.getElementById('summary-shipping').innerText = `${shipping} ج.م`;
+    document.getElementById('summary-total').innerText = `${total} ج.م`;
+
+    const discRow = document.getElementById('summary-discount-row');
+    if (discount > 0) {
+        discRow.style.display = 'flex';
+        document.getElementById('summary-discount').innerText = `-${discount} ج.م`;
+    } else {
+        discRow.style.display = 'none';
+    }
 }
 
 async function submitOrder(e) {
     e.preventDefault();
-    const btn = e.submitter;
-    if (btn) btn.disabled = true;
     
+    const name = document.getElementById('customer-name').value.trim();
+    const phone = document.getElementById('customer-phone').value.trim();
     const govSelect = document.getElementById('customer-gov');
-    const subtotal = cartItems.reduce((s, i) => s + (i.price * i.qty), 0);
-    
-    // Calculate discount
-    let discount = 0;
-    const uiDiscountEl = document.getElementById('cart-discount-price');
-    if (uiDiscountEl && appliedCoupon) {
-        discount = parseInt(uiDiscountEl.innerText.replace(/[^\d]/g, '')) || 0;
-    }
+    const gov = govSelect.value; // shipping price
+    const govName = govSelect.options[govSelect.selectedIndex]?.dataset?.name || govSelect.options[govSelect.selectedIndex]?.text?.replace(/\s*\(.*\)/, '').trim() || gov;
+    const district = document.getElementById('customer-district').value.trim();
+    const address = document.getElementById('customer-address').value.trim();
+    const notes = document.getElementById('customer-notes').value.trim();
 
-    // Calculate shipping
-    let originalShipping = parseFloat(govSelect.value) || 0;
-    
-    // Check if free shipping applies
-    let hasEligibleItems = false;
+    if (cartItems.length === 0) return;
+
+    let subtotal = cartItems.reduce((s, i) => s + (i.price * i.qty), 0);
+    let discount = 0;
+
     if (appliedCoupon) {
         if (appliedCoupon.apply_type === 'all' || !appliedCoupon.apply_type) {
-            hasEligibleItems = cartItems.length > 0;
+            discount = appliedCoupon.type === 'fixed' ? appliedCoupon.discount : Math.round(subtotal * (appliedCoupon.discount / 100));
         } else if (appliedCoupon.apply_type === 'categories') {
-            hasEligibleItems = cartItems.some(item => {
-                const p = products.find(prod => prod.id === item.id);
-                return p && appliedCoupon.target_ids.includes(p.category);
-            });
-        } else if (appliedCoupon.apply_type === 'products') {
-            hasEligibleItems = cartItems.some(item => appliedCoupon.target_ids.includes(item.id.toString()));
+            const applicableItems = cartItems.filter(item => appliedCoupon.target_ids.includes(item.category));
+            let applicableSubtotal = applicableItems.reduce((s, i) => s + (i.price * i.qty), 0);
+            discount = appliedCoupon.type === 'fixed' ? appliedCoupon.discount : Math.round(applicableSubtotal * (appliedCoupon.discount / 100));
+        } else {
+            const applicableItems = cartItems.filter(item => appliedCoupon.target_ids.includes(item.id.toString()) || appliedCoupon.target_ids.includes(item.id));
+            let applicableSubtotal = applicableItems.reduce((s, i) => s + (i.price * i.qty), 0);
+            discount = appliedCoupon.type === 'fixed' ? appliedCoupon.discount : Math.round(applicableSubtotal * (appliedCoupon.discount / 100));
+        }
+
+        if (appliedCoupon.max_discount && discount > appliedCoupon.max_discount) {
+            discount = appliedCoupon.max_discount;
         }
     }
-    
-    const shipping = (appliedCoupon && appliedCoupon.free_shipping && hasEligibleItems) ? 0 : originalShipping;
-    const total = subtotal - discount + shipping;
+
+    let shipping = parseFloat(gov) || 0;
+    if (appliedCoupon && appliedCoupon.free_shipping) {
+        shipping = 0;
+    }
+
+    let total = subtotal - discount + shipping;
+    if (total < 0) total = 0;
+
+    const itemsSummary = cartItems.map(item => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        qty: item.qty,
+        color: item.color,
+        size: item.size
+    }));
 
     const orderData = {
-        // Flattened properties for DB columns
-        customer_name: document.getElementById('customer-name').value,
-        customer_phone: document.getElementById('customer-phone').value.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)),
-        governorate: govSelect.options[govSelect.selectedIndex].dataset.name,
-        district: document.getElementById('customer-district').value,
-        address: document.getElementById('customer-address').value,
-        notes: document.getElementById('customer-notes').value,
-        
-        items: cartItems.map(i => ({ id: i.id, name: i.name, price: i.price, qty: i.qty })),
+        status: 'new',
+        customer_name: name,
+        customer_phone: phone,
+        governorate: govName,
+        district: district,
+        address: address,
+        notes: notes,
+        items: itemsSummary,
         subtotal: subtotal,
         shipping: shipping,
         discount: discount,
-        coupon: appliedCoupon ? appliedCoupon.code : null,
         total: total,
-        status: 'new'
+        coupon: appliedCoupon ? appliedCoupon.code : null
     };
-    
+
     try {
         const savedOrder = await SupabaseService.saveOrder(orderData);
         
-        // Update coupon uses in Supabase (non-blocking)
-        if (appliedCoupon) {
-            SupabaseService.saveCoupon({ 
-                id: appliedCoupon.id, 
-                current_uses: (appliedCoupon.current_uses || 0) + 1 
-            }).catch(err => console.warn('Coupon usage update failed:', err));
-        }
+        // Pixel Purchase Trigger
+        trackPixel('Purchase', {
+            content_ids: cartItems.map(i => i.id),
+            content_name: cartItems.map(i => i.name).join(', '),
+            value: total,
+            currency: 'EGP'
+        });
 
-        // WhatsApp Message
-        sendWhatsApp({ ...orderData, id: savedOrder.id, date: new Date().toLocaleDateString('ar-EG') });
+        // WhatsApp Notification
+        sendWhatsAppNotification(savedOrder, cartItems);
 
-        // Clear Cart
+        // Clear cart
         cartItems = [];
         localStorage.removeItem('perex_cart');
-        appliedCoupon = null;
         updateCartUI();
         closeCheckout();
-        document.getElementById('checkout-form').reset();
-        // Show Success Modal
-        document.getElementById('success-overlay').classList.add('active');
-        document.getElementById('success-modal').classList.add('active');
         
-        // Pixel
-        trackPixel('Purchase', { value: total, currency: 'EGP', content_ids: orderData.items.map(i => i.id) });
+        // Success popup
+        document.getElementById('success-overlay').classList.add('active');
+
     } catch (e) {
-        console.error('Order Submit Error:', e);
         alert('حدث خطأ أثناء إرسال الطلب: ' + e.message);
-        if (btn) btn.disabled = false;
     }
 }
 
-function sendWhatsApp(o) {
-    let msg = `*${settings.store.waMsg}*\n\n`;
-    msg += `👤 *العميل:* ${o.customer_name}\n`;
-    msg += `📞 *الهاتف:* ${o.customer_phone}\n`;
-    msg += `📍 *العنوان:* ${o.governorate} - ${o.district || ''}\n`;
-    msg += `🏠 *التفاصيل:* ${o.address}\n`;
-    if (o.notes) msg += `📝 *ملاحظات:* ${o.notes}\n`;
-    msg += `\n📦 *المنتجات:*\n`;
-    o.items.forEach((i, idx) => msg += `${idx+1}. ${i.name} (عدد: ${i.qty}) (${i.price * i.qty} ج.م)\n`);
-    msg += `\n💰 *الحساب:*\n`;
-    msg += `قيمة المنتجات: ${o.subtotal} ج.م\n`;
-    if (o.discount) msg += `خصم الكوبون: -${o.discount} ج.م\n`;
-    msg += `مصاريف الشحن: ${o.shipping} ج.م\n`;
-    msg += `*الإجمالي المطلوب:* ${o.total} ج.م\n`;
+function sendWhatsAppNotification(order, items) {
+    if (!settings.store || !settings.store.whatsapp) return;
     
-    const url = `https://wa.me/${settings.store.whatsapp}?text=${encodeURIComponent(msg)}`;
-    window.open(url, '_blank');
+    const cleanNum = settings.store.whatsapp.replace(/\D/g, '');
+    const num = cleanNum.startsWith('2') ? cleanNum : '2' + cleanNum;
+    
+    let text = `*طلب جديد رقم #${order.id}* 🛒\n\n`;
+    text += `👤 *الاسم:* ${order.customer_name}\n`;
+    text += `📞 *الهاتف:* ${order.customer_phone}\n`;
+    text += `📍 *العنوان:* ${order.governorate} - ${order.district || ''} - ${order.address}\n`;
+    if (order.notes) text += `📝 *ملاحظات:* ${order.notes}\n`;
+    
+    text += `\n*المنتجات المطلوبة:* 📦\n`;
+    items.forEach((item, idx) => {
+        const variantText = (item.color || item.size) ? ` (${[item.color, item.size].filter(x => x).join(' - ')})` : '';
+        text += `${idx + 1}. ${item.name}${variantText} × ${item.qty} (${item.price} ج.م)\n`;
+    });
+    
+    text += `\n💵 *قيمة المنتجات:* ${order.subtotal} ج.م\n`;
+    if (order.discount > 0) text += `🎁 *الخصم (كود ${order.coupon}):* -${order.discount} ج.م\n`;
+    text += `🚚 *الشحن:* ${order.shipping} ج.م\n`;
+    text += `💰 *الإجمالي النهائي:* ${order.total} ج.م\n\n`;
+    text += `_تم تأكيد هذا الطلب عبر Perex Store_`;
+    
+    const waUrl = `https://api.whatsapp.com/send?phone=${num}&text=${encodeURIComponent(text)}`;
+    window.open(waUrl, '_blank');
 }
 
 // ===== UI HELPERS =====
@@ -860,6 +999,19 @@ function initUI() {
     document.getElementById('cart-overlay').addEventListener('click', closeCart);
     document.getElementById('close-checkout').addEventListener('click', closeCheckout);
     document.getElementById('checkout-overlay').addEventListener('click', closeCheckout);
+
+    const couponInput = document.getElementById('coupon-input');
+    if (couponInput) {
+        couponInput.addEventListener('input', () => {
+            if (couponInput.value.trim() === '') {
+                appliedCoupon = null;
+                const msg = document.getElementById('coupon-msg');
+                if (msg) msg.innerText = '';
+                calculateCartTotal();
+                calculateShipping();
+            }
+        });
+    }
 
     // Mobile Menu
     const toggle = document.getElementById('menu-toggle');
@@ -898,6 +1050,7 @@ function initUI() {
     }, { passive: true });
 
     renderReviews();
+    initSmartSearch();
 }
 
 async function submitReview(e) {
@@ -958,16 +1111,23 @@ function closeCart() {
 
 function slideImg(btn, dir, id) {
     const p = products.find(prod => prod.id === id);
-    const img = btn.parentElement.querySelector('img');
+    if (!p || !p.images || p.images.length === 0) return;
+    const imgEl = btn.parentElement.querySelector('img');
     const counter = btn.parentElement.querySelector('.img-counter');
-    let currentIdx = p.images.indexOf(img.src);
+    
+    const currentSrc = imgEl.src;
+    let currentIdx = p.images.findIndex(img => {
+        const url = typeof img === 'string' ? img : (img.url || '');
+        return currentSrc === url || currentSrc.endsWith(url);
+    });
     if (currentIdx === -1) currentIdx = 0;
     
     let nextIdx = currentIdx + dir;
     if (nextIdx < 0) nextIdx = p.images.length - 1;
     if (nextIdx >= p.images.length) nextIdx = 0;
     
-    img.src = p.images[nextIdx];
+    const nextImg = p.images[nextIdx];
+    imgEl.src = typeof nextImg === 'string' ? nextImg : (nextImg.url || 'prerx logo.jpeg');
     counter.innerText = `${nextIdx + 1} / ${p.images.length}`;
 }
 
@@ -1278,13 +1438,28 @@ function copyOfferCoupon(el, code) {
 // ===== Cart Add Notification Functions =====
 let cartNotificationTimeout = null;
 
-function showAddToCartNotification(product) {
+function showAddToCartNotification(product, color) {
     let container = document.getElementById('cart-notification');
     if (!container) {
         container = document.createElement('div');
         container.id = 'cart-notification';
         container.className = 'cart-notification';
         document.body.appendChild(container);
+    }
+    
+    let imgSrc = 'prerx logo.jpeg';
+    if (product.images && product.images.length > 0) {
+        const matchedImg = product.images.find(img => 
+            typeof img !== 'string' && 
+            img.color && 
+            img.color.trim().toLowerCase() === (color || '').trim().toLowerCase()
+        );
+        if (matchedImg && matchedImg.url) {
+            imgSrc = matchedImg.url;
+        } else {
+            const firstImg = product.images[0];
+            imgSrc = typeof firstImg === 'string' ? firstImg : (firstImg?.url || 'prerx logo.jpeg');
+        }
     }
     
     container.innerHTML = `
@@ -1301,7 +1476,7 @@ function showAddToCartNotification(product) {
                 <span class="product-name">${product.name}</span>
                 <span class="product-price">${product.price} ج.م</span>
             </div>
-            <img class="product-img" src="${product.images[0] || 'prerx logo.jpeg'}" alt="${product.name}">
+            <img class="product-img" src="${imgSrc}" alt="${product.name}">
         </div>
         <div class="cart-notification-footer">
             <button class="btn btn-primary" onclick="checkoutFromNotification()">إتمام الطلب <i class="fa-solid fa-receipt"></i></button>
@@ -1367,7 +1542,7 @@ function showVariantNotification(product) {
                 <span class="product-name">${product.name}</span>
                 <span style="font-size:0.85rem; color: var(--muted-color);">يحتوي هذا المنتج على ${product.has_colors && product.has_sizes ? 'ألوان ومقاسات' : product.has_colors ? 'ألوان' : 'مقاسات'} متعددة</span>
             </div>
-            <img class="product-img" src="${product.images[0] || 'prerx logo.jpeg'}" alt="${product.name}">
+            <img class="product-img" src="${typeof product.images[0] === 'string' ? product.images[0] : (product.images[0]?.url || 'prerx logo.jpeg')}" alt="${product.name}">
         </div>
         <div class="cart-notification-footer">
             <button class="btn btn-primary" onclick="closeCartNotification(); window.location.href='landing.html?id=${product.id}'">اختر المواصفات <i class="fa-solid fa-arrow-left"></i></button>
@@ -1390,3 +1565,155 @@ window.closeCartNotification = closeCartNotification;
 window.checkoutFromNotification = checkoutFromNotification;
 window.viewCartFromNotification = viewCartFromNotification;
 
+// ===== SMART SEARCH ENGINE =====
+function initSmartSearch() {
+    const trigger    = document.getElementById('search-trigger');
+    const overlay    = document.getElementById('search-overlay');
+    const closeBtn   = document.getElementById('search-close-btn');
+    const input      = document.getElementById('smart-search-input');
+    const clearBtn   = document.getElementById('search-clear');
+    const grid       = document.getElementById('search-results-grid');
+    const info       = document.getElementById('search-results-info');
+
+    if (!trigger || !overlay || !input) return;
+
+    let searchTimeout = null;
+
+    // ---- Open / Close ----
+    function openSearch() {
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        setTimeout(() => input.focus(), 120);
+    }
+
+    function closeSearch() {
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+        input.value = '';
+        clearBtn.style.display = 'none';
+        renderEmpty();
+        if (info) info.textContent = '';
+    }
+
+    trigger.addEventListener('click', openSearch);
+    closeBtn.addEventListener('click', closeSearch);
+
+    // Close when clicking backdrop
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeSearch();
+    });
+
+    // Keyboard: Escape closes, Ctrl+K / Cmd+K opens
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && overlay.classList.contains('active')) {
+            closeSearch();
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            overlay.classList.contains('active') ? closeSearch() : openSearch();
+        }
+    });
+
+    // ---- Clear button ----
+    clearBtn.addEventListener('click', () => {
+        input.value = '';
+        clearBtn.style.display = 'none';
+        renderEmpty();
+        if (info) info.textContent = '';
+        input.focus();
+    });
+
+    // ---- Live search (debounced 180ms) ----
+    input.addEventListener('input', () => {
+        const q = input.value.trim();
+        clearBtn.style.display = q ? 'flex' : 'none';
+        clearTimeout(searchTimeout);
+        if (!q) {
+            renderEmpty();
+            if (info) info.textContent = '';
+            return;
+        }
+        searchTimeout = setTimeout(() => runSearch(q), 180);
+    });
+
+    // ---- Helpers ----
+    function renderEmpty() {
+        grid.innerHTML = `
+            <div class="search-empty-state">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <p>ابدأ بكتابة اسم المنتج أو الفئة</p>
+            </div>`;
+    }
+
+    function highlight(text, query) {
+        if (!text || !query) return text || '';
+        const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return String(text).replace(new RegExp(`(${escaped})`, 'gi'),
+            '<mark>$1</mark>');
+    }
+
+    function runSearch(q) {
+        const lower = q.toLowerCase();
+
+        const results = products.filter(p => {
+            if (p.is_visible === false) return false;
+            const name  = (p.name        || '').toLowerCase();
+            const desc  = (p.description || '').toLowerCase();
+            const cat   = categories.find(c => c.id === p.category);
+            const catName = (cat ? cat.name : '').toLowerCase();
+            return name.includes(lower) || desc.includes(lower) || catName.includes(lower);
+        });
+
+        // Update info bar
+        if (info) {
+            info.innerHTML = results.length > 0
+                ? `تم العثور على <span class="highlight-count">${results.length}</span> نتيجة لـ "${q}"`
+                : `لا توجد نتائج لـ "${q}"`;
+        }
+
+        if (results.length === 0) {
+            grid.innerHTML = `
+                <div class="search-no-results">
+                    <i class="fa-solid fa-face-sad-tear"></i>
+                    <p>لا توجد منتجات تطابق "${q}"</p>
+                </div>`;
+            return;
+        }
+
+        grid.innerHTML = results.map((p, i) => {
+            const cat     = categories.find(c => c.id === p.category);
+            const catName = cat ? cat.name : '';
+            const img     = (p.images && p.images.length) ? (typeof p.images[0] === 'string' ? p.images[0] : (p.images[0]?.url || 'prerx logo.jpeg')) : 'prerx logo.jpeg';
+            const discount = p.old_price
+                ? Math.round(((p.old_price - p.price) / p.old_price) * 100)
+                : 0;
+
+            return `
+                <div class="search-result-card"
+                     style="animation-delay:${i * 30}ms"
+                     onclick="window.location.href='product.html?id=${p.id}'">
+                    <div class="search-result-img">
+                        <img src="${img}" alt="${p.name}" loading="lazy">
+                    </div>
+                    <div class="search-result-info">
+                        ${catName ? `<span class="search-result-category">${highlight(catName, q)}</span>` : ''}
+                        <div class="search-result-name">${highlight(p.name, q)}</div>
+                        <div class="search-result-price">
+                            ${p.old_price ? `<del>${p.old_price} ج.م</del>` : ''}
+                            ${p.price} ج.م
+                            ${discount > 0 ? `<span style="font-size:0.7rem;background:var(--primary-gradient);color:#fff;border-radius:5px;padding:1px 6px;margin-right:4px">${discount}%</span>` : ''}
+                        </div>
+                    </div>
+                </div>`;
+        }).join('');
+    }
+
+    // Add keyboard shortcut hint to bottom of panel
+    const panel = overlay.querySelector('.search-panel');
+    if (panel) {
+        const hint = document.createElement('div');
+        hint.className = 'search-shortcut-hint';
+        hint.innerHTML = `<kbd>Esc</kbd> للإغلاق &nbsp;|&nbsp; <kbd>Ctrl</kbd>+<kbd>K</kbd> للفتح السريع`;
+        panel.appendChild(hint);
+    }
+}
