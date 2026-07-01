@@ -428,20 +428,15 @@
                 <img src="prerx logo.jpeg" alt="Perex Store Logo" width="45" height="45">
                 <span>Perex Store</span>
             </a>
-            
-            <nav class="navbar" id="navbar">
-                <ul class="nav-links">
-                    <li class="menu-branding">
-                        <img src="prerx logo.jpeg" alt="Logo">
-                        <span>Perex Store</span>
-                    </li>
-                    <li><a href="index.html#home"><i class="fa-solid fa-house"></i> الرئيسية</a></li>
-                    <li><a href="index.html#features"><i class="fa-solid fa-star"></i> المميزات</a></li>
-                    <li><a href="index.html#products"><i class="fa-solid fa-bag-shopping"></i> المنتجات</a></li>
-                    <li><a href="index.html#reviews"><i class="fa-solid fa-comments"></i> التقييمات</a></li>
-                    <li><a href="index.html#contact"><i class="fa-solid fa-headset"></i> تواصل معنا</a></li>
-                </ul>
-            </nav>
+
+            <!-- Desktop Nav Links (hidden on mobile) -->
+            <ul class="desktop-nav-links">
+                <li><a href="index.html#home">الرئيسية</a></li>
+                <li><a href="index.html#features">المميزات</a></li>
+                <li><a href="index.html#products">المنتجات</a></li>
+                <li><a href="index.html#reviews">التقييمات</a></li>
+                <li><a href="index.html#contact">تواصل معنا</a></li>
+            </ul>
 
             <div class="nav-icons">
                 <div class="cart-icon" id="cart-icon">
@@ -454,7 +449,29 @@
             </div>
         </div>
     </header>
+
+
+    <!-- Mobile Menu Overlay -->
     <div class="menu-overlay" id="menu-overlay"></div>
+
+    <!-- Mobile Nav Drawer (outside header to fix stacking context) -->
+    <nav class="navbar" id="navbar">
+        <ul class="nav-links" id="nav-links">
+            <li class="menu-branding">
+                <img src="prerx logo.jpeg" alt="Logo">
+                <span>Perex Store</span>
+                <button class="nav-close-btn" id="nav-close-btn" aria-label="إغلاق القائمة">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </li>
+            <li><a href="index.html#home"><i class="fa-solid fa-house"></i> الرئيسية</a></li>
+            <li><a href="index.html#features"><i class="fa-solid fa-star"></i> المميزات</a></li>
+            <li><a href="index.html#products"><i class="fa-solid fa-bag-shopping"></i> المنتجات</a></li>
+            <li><a href="index.html#reviews"><i class="fa-solid fa-comments"></i> التقييمات</a></li>
+            <li><a href="index.html#contact"><i class="fa-solid fa-headset"></i> تواصل معنا</a></li>
+        </ul>
+    </nav>
+
 
     <!-- Main Content Container -->
     <main class="container product-details-container">

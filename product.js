@@ -1168,33 +1168,57 @@ function closeSuccessModal() {
 
 // ===== UI GENERAL FLOW INTERACTION =====
 function initUI() {
-    // Menu mobile toggle
+    // Mobile Menu - targets .navbar drawer (outside header for correct stacking context)
     const toggle = document.getElementById('menu-toggle');
-    const nav = document.querySelector('.nav-links');
+    const navDrawer = document.getElementById('navbar');
     const overlay = document.getElementById('menu-overlay');
-    
-    if (toggle && nav && overlay) {
-        const toggleMenu = (e) => {
-            if (e) e.stopPropagation();
-            nav.classList.toggle('active');
-            overlay.classList.toggle('active');
-            document.body.style.overflow = nav.classList.contains('active') ? 'hidden' : '';
-            const icon = toggle.querySelector('i');
-            if (icon) {
-                icon.classList.toggle('fa-bars');
-                icon.classList.toggle('fa-xmark');
-            }
-        };
+    const navCloseBtn = document.getElementById('nav-close-btn');
 
-        toggle.addEventListener('click', toggleMenu);
-        overlay.addEventListener('click', toggleMenu);
-        
-        document.querySelectorAll('.nav-links a').forEach(a => {
-            a.addEventListener('click', () => {
-                if (nav.classList.contains('active')) toggleMenu();
-            });
+    const closeMenu = () => {
+        if (!navDrawer) return;
+        navDrawer.classList.remove('active');
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+        const icon = toggle ? toggle.querySelector('i') : null;
+        if (icon) {
+            icon.classList.add('fa-bars');
+            icon.classList.remove('fa-xmark');
+        }
+    };
+
+    const openMenu = () => {
+        if (!navDrawer) return;
+        navDrawer.classList.add('active');
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        const icon = toggle ? toggle.querySelector('i') : null;
+        if (icon) {
+            icon.classList.remove('fa-bars');
+            icon.classList.add('fa-xmark');
+        }
+    };
+
+    if (toggle && navDrawer && overlay) {
+        toggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            navDrawer.classList.contains('active') ? closeMenu() : openMenu();
+        });
+
+        overlay.addEventListener('click', closeMenu);
+
+        if (navCloseBtn) {
+            navCloseBtn.addEventListener('click', closeMenu);
+        }
+
+        navDrawer.querySelectorAll('a').forEach(a => {
+            a.addEventListener('click', closeMenu);
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && navDrawer.classList.contains('active')) closeMenu();
         });
     }
+
 
     // Cart Sidebar Toggle
     const cartBtn = document.getElementById('cart-icon');

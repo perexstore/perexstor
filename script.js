@@ -1013,32 +1013,64 @@ function initUI() {
         });
     }
 
-    // Mobile Menu
+    // Mobile Menu - targets .navbar drawer (outside header for correct stacking context)
     const toggle = document.getElementById('menu-toggle');
-    const nav = document.querySelector('.nav-links');
+    const navDrawer = document.getElementById('navbar');
     const menuOverlay = document.getElementById('menu-overlay');
+    const navCloseBtn = document.getElementById('nav-close-btn');
 
-    if (toggle && nav && menuOverlay) {
+    const closeMenu = () => {
+        navDrawer.classList.remove('active');
+        menuOverlay.classList.remove('active');
+        document.body.style.overflow = '';
+        const icon = toggle ? toggle.querySelector('i') : null;
+        if (icon) {
+            icon.classList.add('fa-bars');
+            icon.classList.remove('fa-xmark');
+        }
+    };
+
+    const openMenu = () => {
+        navDrawer.classList.add('active');
+        menuOverlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        const icon = toggle ? toggle.querySelector('i') : null;
+        if (icon) {
+            icon.classList.remove('fa-bars');
+            icon.classList.add('fa-xmark');
+        }
+    };
+
+    if (toggle && navDrawer && menuOverlay) {
         const toggleMenu = (e) => {
             if (e) e.stopPropagation();
-            nav.classList.toggle('active');
-            menuOverlay.classList.toggle('active');
-            document.body.style.overflow = nav.classList.contains('active') ? 'hidden' : '';
-            const icon = toggle.querySelector('i');
-            if (icon) {
-                icon.classList.toggle('fa-bars');
-                icon.classList.toggle('fa-xmark');
+            if (navDrawer.classList.contains('active')) {
+                closeMenu();
+            } else {
+                openMenu();
             }
         };
 
         toggle.addEventListener('click', toggleMenu);
-        menuOverlay.addEventListener('click', toggleMenu);
-        
-        // Close menu when clicking a link
-        nav.querySelectorAll('a').forEach(link => {
+        menuOverlay.addEventListener('click', closeMenu);
+
+        // Close button inside drawer
+        if (navCloseBtn) {
+            navCloseBtn.addEventListener('click', closeMenu);
+        }
+
+        // Close menu when clicking any nav link
+        navDrawer.querySelectorAll('a').forEach(link => {
             link.addEventListener('click', () => {
-                if (nav.classList.contains('active')) toggleMenu();
+                closeMenu();
             });
+        });
+
+        // Close on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && navDrawer.classList.contains('active')) {
+                closeMenu();
+            }
         });
     }
 
